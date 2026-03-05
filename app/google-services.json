@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "779638705395",
+    "project_id": "eco-drop-210f2",
+    "storage_bucket": "eco-drop-210f2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:779638705395:android:3e3cbed9a5fdb5cd4abb86",
+        "android_client_info": {
+          "package_name": "com.example.tfg"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDpJDk3c4sLsOLPE7N83twFPJh5tizgqOE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
