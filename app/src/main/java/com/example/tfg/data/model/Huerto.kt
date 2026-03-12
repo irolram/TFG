@@ -1,9 +1,7 @@
 package com.example.tfg.data.model
 
-import com.google.firebase.firestore.DocumentId
 
 data class Huerto(
-    @DocumentId
     val id: String = "",
     val nombre: String = "",
     val descripcion: String = "",
