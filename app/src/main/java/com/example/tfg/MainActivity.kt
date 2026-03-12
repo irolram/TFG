@@ -1,40 +1,78 @@
 package com.example.tfg
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.runtime.LaunchedEffect
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.tfg.data.model.Rol
+import com.example.tfg.data.model.Usuario
+import com.example.tfg.data.network.RetrofitClient
+import com.example.tfg.ui.screen.LoginEcoDropScreen
+import com.example.tfg.ui.screen.PantallaPrincipalAdmin
+import com.example.tfg.ui.screen.PantallaPrincipalUser
+import com.example.tfg.ui.screens.RegisterScreen
 import com.example.tfg.ui.theme.TFGTheme
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
-import android.util.Log
+import com.google.firebase.auth.FirebaseAuth
+
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
             TFGTheme {
+                val navController = rememberNavController()
+                val auth = FirebaseAuth.getInstance()
+                val currentUser = auth.currentUser
 
-                val db = Firebase.firestore // Esta línea "enciende" la conexión con la nube
+                NavHost(
+                    navController = navController,
+                    startDestination = "login"
+                ) {
+                    composable("login") {
+                        LoginEcoDropScreen(navController)
+                    }
+                    composable("register") {
+                        RegisterScreen(navController)
+                    }
 
-                db.collection("huertos")
-                    .get()
-                    .addOnSuccessListener { resultado ->
-                        for (documento in resultado) {
-                            // Esto imprimirá en la consola de Android Studio lo que pusiste en la web
-                            Log.d("FIREBASE_TEST", "Huerto leído: ${documento.data["nombre"]}")
+                    composable("main_menuUser") {
+                        PantallaPrincipalUser(navController)
+                    }
+                    composable("main_menuAdmin") {
+                        PantallaPrincipalAdmin(navController)
+                    }
+
+                }
+
+                // 2. Lógica de sincronización con MySQL
+                // Esto solo ocurre si detectamos al usuario al arrancar
+                if (currentUser != null) {
+                    val miUsuarioReal = Usuario(
+                        id = currentUser.uid,
+                        nombre = currentUser.displayName ?: "Usuario Nuevo",
+                        apellidos = "",
+                        email = currentUser.email ?: "",
+                        rol = Rol.USUARIO
+                    )
+
+                    LaunchedEffect(currentUser.uid) {
+                        try {
+                            val response = RetrofitClient.instance.registrarUsuario(miUsuarioReal)
+                            if (response.isSuccessful) {
+                                Log.d("RETROFIT", "¡Usuario real ${miUsuarioReal.nombre} sincronizado!")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("RETROFIT", "Error de red: ${e.message}")
                         }
                     }
-                    .addOnFailureListener { exception ->
-                        Log.e("FIREBASE_TEST", "Error al conectar: ", exception)
-                    }
+                }
             }
         }
     }
