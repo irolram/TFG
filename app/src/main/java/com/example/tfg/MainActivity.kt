@@ -54,6 +54,7 @@ class MainActivity : ComponentActivity() {
                 // 2. Lógica de sincronización con MySQL
                 // Esto solo ocurre si detectamos al usuario al arrancar
                 if (currentUser != null) {
+                    /*
                     val miUsuarioReal = Usuario(
                         id = currentUser.uid,
                         nombre = currentUser.displayName ?: "Usuario Nuevo",
@@ -72,7 +73,10 @@ class MainActivity : ComponentActivity() {
                             Log.e("RETROFIT", "Error de red: ${e.message}")
                         }
                     }
+
+                     */
                 }
+
             }
         }
     }
