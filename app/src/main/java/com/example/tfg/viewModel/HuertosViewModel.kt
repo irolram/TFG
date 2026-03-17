@@ -79,16 +79,26 @@ class HuertosViewModel : ViewModel() {
 
     fun crearNuevoHuerto(apiService: IApiService, nombre: String, descripcion: String) {
         viewModelScope.launch {
-            guardando.value = true
+            guardando.value = true // 1. Enciende la rueda
+            errorGuardar.value = null
+
             try {
                 val nuevo = Huerto(nombre = nombre, descripcion = descripcion)
                 val response = apiService.crearHuerto(nuevo)
+
                 if (response.isSuccessful) {
                     guardadoExitoso.value = true
-                    // 🔌 TRUCO: Después de crear, llamamos a la de cargar para actualizar la lista
-                    obtenerTodosLosHuertos(apiService)
+                    Log.d("DEBUG_HUERTO", "¡Huerto guardado con éxito!")
+                } else {
+                    errorGuardar.value = "Error del servidor: ${response.code()}"
+                    Log.e("DEBUG_HUERTO", "Fallo API: ${response.errorBody()?.string()}")
                 }
+            } catch (e: Exception) {
+                // Si no hay internet o el servidor está apagado
+                errorGuardar.value = "Fallo de conexión"
+                Log.e("DEBUG_HUERTO", "Excepción: ${e.message}")
             } finally {
+                // 🔌 ESTA ES LA MAGIA: Pase lo que pase, apaga la rueda
                 guardando.value = false
             }
         }

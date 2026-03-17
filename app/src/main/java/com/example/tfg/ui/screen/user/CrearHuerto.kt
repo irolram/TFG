@@ -25,12 +25,7 @@ fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewMo
     val estaGuardando = viewModel.guardando.value
     val error = viewModel.errorGuardar.value
     val guardadoExitoso = viewModel.guardadoExitoso.value
-    LaunchedEffect(guardadoExitoso) {
-        if (guardadoExitoso) {
-            navController.popBackStack()
-            viewModel.resetEstado()
-        }
-    }
+
 
     Scaffold(
         topBar = {
@@ -86,6 +81,12 @@ fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewMo
                     Text("Guardar Huerto")
                 }
             }
+        }
+    }
+    LaunchedEffect(guardadoExitoso) {
+        if (guardadoExitoso) {
+            navController.popBackStack()
+            viewModel.resetEstado()
         }
     }
 }

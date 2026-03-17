@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +25,7 @@ import androidx.navigation.NavHostController
 import com.example.tfg.data.model.Huerto
 import com.example.tfg.data.network.RetrofitClient
 import com.example.tfg.viewModel.HuertosViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,7 +45,29 @@ fun MisHuertosScreen(navController: NavHostController, viewModel: HuertosViewMod
         topBar = {
             TopAppBar(
                 title = { Text("Mis Huertos", color = Color.White) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF4CAF50)) // Tu VerdePrenda
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = VerdePrenda),
+
+                // 🔌 AQUÍ AÑADIMOS EL BOTÓN DE SALIR
+                actions = {
+                    IconButton(
+                        onClick = {
+                            // 1. Cerramos la sesión en Firebase
+                            FirebaseAuth.getInstance().signOut()
+
+                            // 2. Volvemos al Login limpiando TODO el historial
+                            navController.navigate("login") {
+                                // popUpTo(0) significa "borra absolutamente todas las pantallas anteriores"
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ExitToApp,
+                            contentDescription = "Cerrar Sesión",
+                            tint = Color.White
+                        )
+                    }
+                }
             )
         },
         // 3. 🔌 Botón flotante para ir a tu pantalla de "Crear Huerto"
