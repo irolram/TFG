@@ -1,0 +1,96 @@
+package com.example.tfg.viewModel
+
+import android.util.Log
+import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.tfg.data.model.Huerto
+import com.example.tfg.data.network.IApiService
+import kotlinx.coroutines.launch
+
+
+class HuertosViewModel : ViewModel() {
+
+    val huertos = mutableStateOf<List<Huerto>>(emptyList())
+    val cargando = mutableStateOf(false)
+    val error = mutableStateOf<String?>(null)
+
+    fun cargarMisHuertos(apiService: IApiService, nombre: String,descripcion: String) {
+        viewModelScope.launch {
+            // Encendemos la ruedita de carga y limpiamos errores previos
+            cargando.value = true
+            error.value = null
+
+            try {
+                val nuevoHuerto = Huerto(nombre = nombre, descripcion = descripcion)
+                // Hacemos la llamada a Spring Boot en Railway
+                val response = apiService.crearHuerto(nuevoHuerto)
+
+                if (response.isSuccessful) {
+                    // 1. Encendemos la señal para que la pantalla vuelva hacia atrás
+                    guardadoExitoso.value = true
+
+                    obtenerTodosLosHuertos(apiService)
+
+                } else {
+                    val errorReal = response.errorBody()?.string()
+                    // El servidor respondió, pero con un error (ej. 403 o 500)
+                    error.value = "Error del servidor: ${response.code()}"
+                    Log.e("API_HUERTOS", "Fallo HTTP: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                // Falló antes de llegar al servidor (sin internet, timeout, etc.)
+                error.value = "Fallo de conexión al servidor"
+                Log.e("API_HUERTOS", "Excepción: ${e.message}")
+            } finally {
+                // Pase lo que pase, apagamos la ruedita de carga al terminar
+                cargando.value = false
+            }
+        }
+    }
+
+    val guardando = mutableStateOf(false)
+    val errorGuardar = mutableStateOf<String?>(null)
+
+    val guardadoExitoso = mutableStateOf(false)
+
+
+    fun resetEstado() {
+        guardadoExitoso.value = false
+        errorGuardar.value = null
+    }
+
+    fun obtenerTodosLosHuertos(apiService: IApiService) {
+        viewModelScope.launch {
+            cargando.value = true
+            error.value = null
+            try {
+                val response = apiService.obtenerHuertos() // Tu GET de siempre
+                if (response.isSuccessful) {
+                    huertos.value = response.body() ?: emptyList()
+                }
+            } catch (e: Exception) {
+                error.value = "Error de conexión"
+            } finally {
+                cargando.value = false
+            }
+        }
+    }
+
+    fun crearNuevoHuerto(apiService: IApiService, nombre: String, descripcion: String) {
+        viewModelScope.launch {
+            guardando.value = true
+            try {
+                val nuevo = Huerto(nombre = nombre, descripcion = descripcion)
+                val response = apiService.crearHuerto(nuevo)
+                if (response.isSuccessful) {
+                    guardadoExitoso.value = true
+                    // 🔌 TRUCO: Después de crear, llamamos a la de cargar para actualizar la lista
+                    obtenerTodosLosHuertos(apiService)
+                }
+            } finally {
+                guardando.value = false
+            }
+        }
+    }
+}

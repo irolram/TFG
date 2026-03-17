@@ -14,18 +14,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
+import com.example.tfg.data.TokenManager
+import com.example.tfg.data.model.LoginRequest
 import com.example.tfg.data.model.Rol
 import com.example.tfg.data.network.RetrofitClient
-import com.example.tfg.ui.components.HuertoTextField // Usamos el componente bonito
-import com.example.tfg.ui.theme.TFGTheme
+import com.example.tfg.ui.components.HuertoTextField
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 // Reutilizamos la paleta de colores del huerto
 val VerdeFondoInicio = Color(0xFFE8F5E9)
@@ -38,6 +39,11 @@ val ColorTierra = Color(0xFF795548)
 fun LoginEcoDropScreen(navController: NavHostController) {
     val auth = remember { FirebaseAuth.getInstance() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    // Instanciamos nuestro gestor de tokens
+    val tokenManager = remember { TokenManager(context) }
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -113,47 +119,54 @@ fun LoginEcoDropScreen(navController: NavHostController) {
                             return@Button
                         }
 
-                isLoading = true
-                auth.signInWithEmailAndPassword(email, password)
-                    .addOnCompleteListener { task ->
-                        isLoading = false
-                        if (task.isSuccessful) {
-                            val userId = auth.currentUser?.uid
+                        scope.launch {
+                            isLoading = true
+                            errorMessage = null
 
-                            if (userId != null) {
-                                scope.launch {
-                                    try {
-                                        // 1. Consultamos a Railway para saber el Rol
-                                        val response =
-                                            RetrofitClient.instance.obtenerUsuarioPorId(userId)
+                            try {
+                                // 1. Login en Firebase
+                                val authResult = auth.signInWithEmailAndPassword(email, password).await()
+                                val firebaseUser = authResult.user
 
-                                        if (response.isSuccessful) {
-                                            val usuario = response.body()
+                                if (firebaseUser != null) {
+                                    val uid = firebaseUser.uid
+                                    val correo = firebaseUser.email ?: ""
 
-                                            // 2. Decidimos la ruta según el Rol que viene de MySQL
-                                            val rutaDestino =
-                                                if (usuario?.rol == Rol.ADMIN) {
-                                                    "main_menuAdmin"
-                                                } else {
-                                                    "main_menuUser"
-                                                }
+                                    // 2. Pedir el Token y Rol a Railway
+                                    val loginRequest = LoginRequest(userId = uid, email = correo)
+                                    val response = RetrofitClient.getApiService(context).loginConServidor(loginRequest)
 
-                                            // 3. Navegamos y limpiamos el historial para que no pueda volver atrás al Login
+                                    if (response.isSuccessful) {
+                                        val authData = response.body()
+
+                                        if (authData != null) {
+                                            // 3. GUARDAMOS EL TOKEN (Crucial para las siguientes peticiones)
+                                            tokenManager.saveToken(authData.accessToken, authData.userId)
+
+                                            // 4. Decidimos la ruta según el Rol
+                                            val rutaDestino = if (authData.rol == "ADMIN") {
+                                                "main_menuAdmin"
+                                            } else {
+                                                "main_menuUser"
+                                            }
+
+                                            // 5. Navegamos
                                             navController.navigate(rutaDestino) {
                                                 popUpTo("login") { inclusive = true }
                                             }
-                                        } else {
-                                            errorMessage =
-                                                "No se encontró perfil de usuario en el huerto."
                                         }
-                                    } catch (e: Exception) {
-                                        errorMessage =
-                                            "Error de conexión con Railway: ${e.message}"
+                                    } else {
+                                        errorMessage = "Error en el servidor EcoDrop. Verifica tu cuenta."
+                                        Log.e("LOGIN", "Error API: ${response.code()} - ${response.errorBody()?.string()}")
                                     }
                                 }
+                            } catch (e: Exception) {
+                                errorMessage = "Error al entrar al huerto: Credenciales incorrectas o fallo de red."
+                                Log.e("LOGIN", "Excepción: ${e.localizedMessage}")
+                            } finally {
+                                isLoading = false
                             }
                         }
-                    }
                     },
                     modifier = Modifier
                         .fillMaxWidth()

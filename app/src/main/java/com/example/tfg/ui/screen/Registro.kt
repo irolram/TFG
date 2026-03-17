@@ -1,5 +1,6 @@
 package com.example.tfg.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,12 +13,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.tfg.data.model.Usuario
+import com.example.tfg.data.TokenManager
+import com.example.tfg.data.model.LoginRequest
 import com.example.tfg.data.model.Rol
+import com.example.tfg.data.model.Usuario
 import com.example.tfg.data.network.RetrofitClient
 import com.example.tfg.ui.components.HuertoTextField
 import kotlinx.coroutines.launch
@@ -33,8 +37,10 @@ val ColorTierra = Color(0xFF795548)
 @Composable
 fun RegisterScreen(navController: NavController) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val tokenManager = remember { TokenManager(context) }
 
-    // Estados para los campos (¡sin el '/' de la base de datos)
+    // Estados para los campos
     var nombre by remember { mutableStateOf("") }
     var apellidos by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -131,44 +137,69 @@ fun RegisterScreen(navController: NavController) {
                     CircularProgressIndicator(color = VerdePrimario)
                 } else {
                     Button(
-                        onClick = {scope.launch {
-                            isLoading = true
-                            errorMsg = null
-
-                            try {
-                                // 1. REGISTRO EN FIREBASE (Seguridad)
-                                // Usamos .await() para esperar a que Firebase termine antes de seguir
-                                val authResult = auth.createUserWithEmailAndPassword(email, password).await()
-                                val firebaseUser = authResult.user
-
-                                if (firebaseUser != null) {
-                                    // 2. REGISTRO EN RAILWAY (Datos del perfil)
-                                    // Usamos el UID de Firebase como ID en nuestra base de datos para vincularlos
-                                    val nuevoUsuario = Usuario(
-                                        id = firebaseUser.uid,
-                                        nombre = nombre,
-                                        apellidos = apellidos,
-                                        email = email,
-                                        rol = Rol.USUARIO
-                                    )
-
-                                    val response = RetrofitClient.instance.registrarUsuario(nuevoUsuario)
-
-                                    if (response.isSuccessful) {
-                                        // ¡Éxito total! Ambos sitios actualizados
-                                        navController.popBackStack()
-                                    } else {
-                                        firebaseUser.delete() // Eliminar el usuario de Firebase en caso de error
-                                        errorMsg = "Error al guardar perfil en el huerto."
-                                    }
+                        onClick = {
+                            scope.launch {
+                                // Validación básica de contraseñas
+                                if (password != confirmarPassword) {
+                                    errorMsg = "Las contraseñas no coinciden"
+                                    return@launch
                                 }
-                            } catch (e: Exception) {
+                                if (nombre.isBlank() || email.isBlank()) {
+                                    errorMsg = "Rellena los campos obligatorios"
+                                    return@launch
+                                }
 
-                                errorMsg = "Error en el registro: ${e.localizedMessage}"
-                            } finally {
-                                isLoading = false
+                                isLoading = true
+                                errorMsg = null
+
+                                try {
+                                    // 1. REGISTRO EN FIREBASE
+                                    val authResult = auth.createUserWithEmailAndPassword(email, password).await()
+                                    val firebaseUser = authResult.user
+
+                                    if (firebaseUser != null) {
+                                        val uid = firebaseUser.uid
+                                        val correo = firebaseUser.email ?: email
+
+                                        // 2. LOGIN EN RAILWAY (Provoca el auto-registro y nos da el JWT)
+                                        val loginRequest = LoginRequest(userId = uid, email = correo)
+                                        val loginResponse = RetrofitClient.getApiService(context).loginConServidor(loginRequest)
+
+                                        if (loginResponse.isSuccessful) {
+                                            val authData = loginResponse.body()
+                                            if (authData != null) {
+                                                // 3. GUARDAMOS EL TOKEN
+                                                tokenManager.saveToken(authData.accessToken, authData.userId)
+
+                                                // 4. ACTUALIZAMOS EL PERFIL (Le ponemos el nombre real en vez del genérico)
+                                                val usuarioActualizado = Usuario(
+                                                    id = uid,
+                                                    nombre = nombre,
+                                                    apellidos = apellidos,
+                                                    email = correo,
+                                                    rol = Rol.USER // O el rol que devuelva authData
+                                                )
+                                                // Esta llamada ya lleva el token gracias al AuthInterceptor
+                                                RetrofitClient.getApiService(context).actualizarUsuario(uid, usuarioActualizado)
+
+                                                navController.navigate("main_menuUser") {
+                                                    // Limpiamos el historial para que no pueda volver atrás al registro
+                                                    popUpTo("login") { inclusive = true }
+                                                }
+                                            }
+                                        } else {
+                                            // Rollback: Si falla nuestra API, borramos de Firebase para no tener "usuarios fantasma"
+                                            firebaseUser.delete().await()
+                                            errorMsg = "Error al conectar con el servidor EcoDrop."
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    errorMsg = "Error: ${e.localizedMessage}"
+                                    Log.e("REGISTRO", "Fallo: ", e)
+                                } finally {
+                                    isLoading = false
+                                }
                             }
-                        }
                         },
                         modifier = Modifier
                             .fillMaxWidth()

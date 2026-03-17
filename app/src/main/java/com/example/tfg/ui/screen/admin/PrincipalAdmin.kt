@@ -1,4 +1,4 @@
-package com.example.tfg.ui.screen
+package com.example.tfg.ui.screen.admin
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.example.tfg.ui.screen.user.VerdeFondo
 
 // Colores Admin (usamos el mismo verde pero con toques más "serios")
 val VerdeAdmin = Color(0xFF388E3C)
