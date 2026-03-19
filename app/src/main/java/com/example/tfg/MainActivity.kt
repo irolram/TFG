@@ -83,7 +83,7 @@ class MainActivity : ComponentActivity() {
 
                     // 5. Pantalla Principal Admin
                     composable("main_menuAdmin") {
-                        PantallaPrincipalAdmin(navController)
+                        PantallaPrincipalAdmin(navController, viewModel)
                     }
 
                     // 6. Pantalla Crear Huerto

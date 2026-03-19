@@ -17,11 +17,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.datastore.preferences.protobuf.LazyStringArrayList.emptyList
 import androidx.navigation.NavHostController
 import com.example.tfg.data.TokenManager
 import com.example.tfg.viewModel.HuertosViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+import kotlin.collections.emptyList
 
 val VerdePrenda = Color(0xFF4CAF50)
 val VerdeFondo = Color(0xFFE8F5E9)
@@ -46,7 +48,7 @@ fun PantallaPrincipalUser(navController: NavHostController, viewModel: HuertosVi
                             scope.launch {
                                 val tokenManager = TokenManager(context)
                                 tokenManager.clearAuth()
-                                vi
+                                viewModel.limpiarDatos()
                             }
                             navController.navigate("login") {
                                 popUpTo(0) { inclusive = true }
@@ -103,9 +105,8 @@ fun PantallaPrincipalUser(navController: NavHostController, viewModel: HuertosVi
                     MisHuertosScreen(navController = navController, viewModel = viewModel)
                 }
                 1 -> {
-                    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                        Text("Bienvenido al Inicio. Aquí irán tus resúmenes.", fontSize = 18.sp, color = VerdePrenda)
-                    }
+                    val huertosList = viewModel.huertos.value
+                    MapaHuertosScreen(huertos = huertosList)
                 }
                 2 -> {
                     Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {

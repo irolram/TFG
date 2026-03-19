@@ -21,17 +21,15 @@ import com.example.tfg.viewModel.HuertosViewModel
 fun DetalleHuertoScreen(
     navController: NavHostController,
     viewModel: HuertosViewModel,
-    huertoId: String // 🔌 ¡Aquí recibimos el ID del huerto seleccionado!
+    huertoId: String
 ) {
-    // Nota: Más adelante usaremos este huertoId para decirle al ViewModel:
-    // "Descarga solo los cultivos que pertenezcan a este ID"
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Detalle del Huerto", color = Color.White) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF4CAF50)),
-                // 🔌 Flecha para volver a la pantalla anterior
+                // Flecha para volver a la pantalla anterior
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(

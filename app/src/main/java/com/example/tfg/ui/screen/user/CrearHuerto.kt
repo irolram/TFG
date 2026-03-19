@@ -6,6 +6,8 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
@@ -13,10 +15,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import com.example.tfg.data.network.RetrofitClient
+import com.example.tfg.ui.components.MapaSelectorUbicacion
 import com.example.tfg.viewModel.HuertosViewModel
 import com.google.android.gms.location.LocationServices
 
@@ -25,8 +30,6 @@ import com.google.android.gms.location.LocationServices
 fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewModel) {
     var nombre by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
-
-    // 🔌 Aquí guardaremos las coordenadas del GPS real
     var latitud by remember { mutableDoubleStateOf(0.0) }
     var longitud by remember { mutableDoubleStateOf(0.0) }
     var ubicacionCapturada by remember { mutableStateOf(false) }
@@ -46,7 +49,7 @@ fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewMo
         }
     }
 
-    // 🔌 El lanzador que pide permiso de ubicación al usuario
+    // El lanzador que pide permiso de ubicación al usuario
     val permisoLanzador = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permisos ->
@@ -76,7 +79,8 @@ fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewMo
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()), // 🔌 Añadido para que la pantalla se pueda deslizar hacia abajo
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
@@ -95,7 +99,9 @@ fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewMo
                 maxLines = 2
             )
 
-            // 📍 BOTÓN DEL GPS (Sustituye al mapa)
+            Text("Ubicación del Huerto", fontWeight = FontWeight.Bold, color = VerdePrenda)
+
+            // 📍 OPCIÓN 1: BOTÓN DEL GPS (Rápido)
             Button(
                 onClick = {
                     val tienePermiso = ContextCompat.checkSelfPermission(
@@ -127,15 +133,37 @@ fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewMo
             ) {
                 Icon(Icons.Filled.LocationOn, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(if (ubicacionCapturada) "📍 ¡Ubicación capturada!" else "📍 Obtener mi ubicación actual")
+                Text(if (ubicacionCapturada) "📍 GPS capturado" else "📍 Usar mi GPS actual")
+            }
+
+            Text("O toca en el mapa para situarlo a mano:", fontSize = 14.sp, color = Color.Gray)
+
+            // 🗺️ OPCIÓN 2: MAPA INTERACTIVO (Manual)
+            MapaSelectorUbicacion(
+                onUbicacionSeleccionada = { latSeleccionada, lonSeleccionada ->
+                    latitud = latSeleccionada
+                    longitud = lonSeleccionada
+                    ubicacionCapturada = true
+                }
+            )
+
+            // Feedback visual de las coordenadas elegidas
+            if (ubicacionCapturada) {
+                Text(
+                    text = "Coordenadas: ${String.format("%.4f", latitud)}, ${String.format("%.4f", longitud)}",
+                    fontSize = 12.sp,
+                    color = VerdePrenda,
+                    fontWeight = FontWeight.Medium
+                )
             }
 
             if (error != null) {
                 Text(text = error, color = Color.Red)
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(8.dp))
 
+            // 💾 BOTÓN DE GUARDAR
             Button(
                 onClick = {
                     if (nombre.isNotBlank() && ubicacionCapturada) {
@@ -148,14 +176,14 @@ fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewMo
                         )
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(50.dp),
                 enabled = !estaGuardando && nombre.isNotBlank() && ubicacionCapturada,
                 colors = ButtonDefaults.buttonColors(containerColor = VerdePrenda)
             ) {
                 if (estaGuardando) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                 } else {
-                    Text("Guardar Huerto")
+                    Text("Guardar Huerto", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

@@ -47,7 +47,8 @@ fun HuertoTextField(
                 focusedBorderColor = VerdeSecundario,
                 unfocusedBorderColor = Color.Transparent,
                 focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
+                unfocusedContainerColor = Color.White,
+                cursorColor = Color.Black
             )
         )
     }

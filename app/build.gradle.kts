@@ -77,6 +77,8 @@ dependencies {
 
     // 6. 📍 LIBRERÍA GPS (Sustituye a Google Maps)
     implementation("com.google.android.gms:play-services-location:21.2.0")
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
+    implementation(libs.androidx.compose.foundation.layout)
 
     // 7. Testing
     testImplementation(libs.junit)

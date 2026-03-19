@@ -25,6 +25,7 @@ import com.example.tfg.viewModel.HuertosViewModel
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
+import com.example.tfg.ui.components.WidgetClima
 
 @Composable
 fun MisHuertosScreen(navController: NavHostController, viewModel: HuertosViewModel) {
@@ -107,20 +108,17 @@ fun ItemHuerto(huerto: Huerto, onClick: () -> Unit, onDeleteClick: () -> Unit) {
 
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { dismissValue ->
-            // Usamos los NUEVOS valores de dirección
             if (dismissValue == SwipeToDismissBoxValue.StartToEnd || dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                onDeleteClick() // Disparamos el diálogo de confirmación
-                false // Devolvemos false para que la tarjeta rebote
+                onDeleteClick()
+                false
             } else {
                 false
             }
         }
     )
 
-    // 🔌 2. Usamos el NUEVO componente: SwipeToDismissBox
     SwipeToDismissBox(
         state = dismissState,
-        // OJO: Ahora el parámetro se llama 'backgroundContent' (antes era solo 'background')
         backgroundContent = {
             Box(
                 modifier = Modifier
@@ -137,7 +135,6 @@ fun ItemHuerto(huerto: Huerto, onClick: () -> Unit, onDeleteClick: () -> Unit) {
                 )
             }
         },
-        // OJO: Ahora el parámetro se llama 'content' (antes era 'dismissContent')
         content = {
             Card(
                 modifier = Modifier
@@ -146,55 +143,33 @@ fun ItemHuerto(huerto: Huerto, onClick: () -> Unit, onDeleteClick: () -> Unit) {
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(16.dp)
                 ) {
-                    // IZQUIERDA: Textos
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = huerto.nombre,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = huerto.descripcion,
-                            fontSize = 14.sp,
-                            color = Color.DarkGray,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                    Text(
+                        text = huerto.nombre,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
 
-                    // DERECHA: Clima
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        modifier = Modifier.padding(start = 16.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.WbSunny,
-                                contentDescription = "Tiempo actual",
-                                tint = Color(0xFFFFA000),
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "24°C",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Black
-                            )
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = huerto.descripcion,
+                        fontSize = 14.sp,
+                        color = Color.DarkGray,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    WidgetClima(latitud = huerto.latitud, longitud = huerto.longitud)
                 }
             }
         }

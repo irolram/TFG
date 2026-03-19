@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Eco
@@ -17,11 +18,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext // 🔌 Añadido para el contexto
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.example.tfg.data.TokenManager
 import com.example.tfg.ui.screen.user.VerdeFondo
+import com.example.tfg.ui.screen.user.VerdePrenda
+import com.example.tfg.viewModel.HuertosViewModel // 🔌 Añadido para limpiar los datos
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 // Colores Admin (usamos el mismo verde pero con toques más "serios")
 val VerdeAdmin = Color(0xFF388E3C)
@@ -29,19 +36,49 @@ val GrisFondo = Color(0xFFF5F5F5)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaPrincipalAdmin(navController: NavHostController) {
-    // Estado para la barra de navegación (0: Dashboard, 1: Usuarios, 2: Mapa, 3: Ajustes)
-    var selectedItem by remember { mutableStateOf(0) }
+fun PantallaPrincipalAdmin(
+    navController: NavHostController,
+    viewModel: HuertosViewModel // 🔌 Añadimos el ViewModel aquí
+) {
+    // 🔌 AÑADIDOS: El contexto y el scope para que el botón de salir no dé error
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    // Estado para la barra de navegación
+    var selectedItem by remember { mutableIntStateOf(0) } // Optimizado a IntState
     val items = listOf("Dashboard", "Usuarios", "Mapa", "Ajustes")
     val icons = listOf(Icons.Filled.Dashboard, Icons.Filled.People, Icons.Filled.Map, Icons.Filled.Settings)
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Panel de Administración - Eco Drop", color = Color.White) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = VerdeAdmin)
+                title = { Text("Eco Drop - Panel Admin", color = Color.White) }, // Le he añadido "Admin" para que lo distingas bien
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = VerdePrenda),
+                actions = {
+                    IconButton(
+                        onClick = {
+                            FirebaseAuth.getInstance().signOut()
+                            scope.launch {
+                                val tokenManager = TokenManager(context)
+                                tokenManager.clearAuth()
+                                viewModel.limpiarDatos()
+
+                                // 🔌 Navegamos DESPUÉS de limpiar los datos para evitar fallos
+                                navController.navigate("login") {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = "Cerrar Sesión",
+                            tint = Color.White
+                        )
+                    }
+                }
             )
-        },
+        }, // 🔌 CORREGIDO: Sobraba una llave aquí que rompía el código
         bottomBar = {
             NavigationBar(containerColor = Color.White) {
                 items.forEachIndexed { index, item ->
@@ -53,7 +90,7 @@ fun PantallaPrincipalAdmin(navController: NavHostController) {
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = VerdeAdmin,
                             selectedTextColor = VerdeAdmin,
-                            indicatorColor = VerdeFondo // Reutilizamos el fondo verde claro
+                            indicatorColor = VerdeFondo
                         )
                     )
                 }
