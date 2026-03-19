@@ -140,7 +140,7 @@ fun LoginEcoDropScreen(navController: NavHostController) {
                                         val authData = response.body()
 
                                         if (authData != null) {
-                                            // 3. GUARDAMOS EL TOKEN (Crucial para las siguientes peticiones)
+                                            // 3. GUARDAMOS EL TOKEN
                                             tokenManager.saveToken(authData.accessToken, authData.userId)
 
                                             // 4. Decidimos la ruta según el Rol

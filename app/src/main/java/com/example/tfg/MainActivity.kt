@@ -27,6 +27,7 @@ import com.example.tfg.ui.screen.admin.PantallaPrincipalAdmin
 import com.example.tfg.ui.screen.user.CrearHuertoScreen
 import com.example.tfg.ui.screen.user.DetalleHuertoScreen
 import com.example.tfg.ui.screen.user.MisHuertosScreen
+import com.example.tfg.ui.screen.user.PantallaPrincipalUser
 import com.example.tfg.ui.screen.user.VerdePrenda
 import com.example.tfg.ui.screens.RegisterScreen
 import com.example.tfg.ui.theme.TFGTheme
@@ -75,9 +76,9 @@ class MainActivity : ComponentActivity() {
                         RegisterScreen(navController)
                     }
 
-                    // 4. Pantalla Principal Usuario (AQUÍ CARGAMOS LA LISTA DE HUERTOS)
+                    // 4. Pantalla Principal Usuario
                     composable("main_menuUser") {
-                        MisHuertosScreen(navController = navController, viewModel = viewModel)
+                        PantallaPrincipalUser(navController = navController, viewModel = viewModel)
                     }
 
                     // 5. Pantalla Principal Admin

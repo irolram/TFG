@@ -77,13 +77,13 @@ class HuertosViewModel : ViewModel() {
         }
     }
 
-    fun crearNuevoHuerto(apiService: IApiService, nombre: String, descripcion: String) {
+    fun crearNuevoHuerto(apiService: IApiService, nombre: String, descripcion: String,latitud: Double, longitud: Double) {
         viewModelScope.launch {
             guardando.value = true // 1. Enciende la rueda
             errorGuardar.value = null
 
             try {
-                val nuevo = Huerto(nombre = nombre, descripcion = descripcion)
+                val nuevo = Huerto(nombre = nombre, descripcion = descripcion, latitud = latitud, longitud = longitud)
                 val response = apiService.crearHuerto(nuevo)
 
                 if (response.isSuccessful) {
@@ -98,9 +98,29 @@ class HuertosViewModel : ViewModel() {
                 errorGuardar.value = "Fallo de conexión"
                 Log.e("DEBUG_HUERTO", "Excepción: ${e.message}")
             } finally {
-                // 🔌 ESTA ES LA MAGIA: Pase lo que pase, apaga la rueda
                 guardando.value = false
             }
         }
+    }
+    fun borrarHuerto(apiService: IApiService, idHuerto: String) {
+        viewModelScope.launch {
+            try {
+                val response = apiService.borrarHuerto(idHuerto)
+                if (response.isSuccessful) {
+                    // Si se borra en el servidor, actualizamos la lista local
+                    val listaActualizada = huertos.value.toMutableList()
+                    listaActualizada.removeAll { it.id == idHuerto }
+                    huertos.value = listaActualizada
+                } else {
+                    error.value = "Error al borrar: ${response.code()}"
+                }
+            } catch (e: Exception) {
+                error.value = "Fallo de conexión al intentar borrar"
+            }
+        }
+
+    }
+    fun limpiarDatos() {
+        huertos.value = emptyList() // Vaciamos la lista de huertos
     }
 }

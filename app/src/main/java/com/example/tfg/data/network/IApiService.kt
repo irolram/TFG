@@ -25,14 +25,14 @@ interface IApiService {
     suspend fun actualizarUsuario(@Path("id") id: String, @Body usuario: Usuario): Response<Usuario>
 
 
-
-
-
     // Obtener todos los huertos del usuario logueado
     @GET("api/huertos")
     suspend fun obtenerHuertos(): Response<List<Huerto>>
 
     @POST("api/huertos")
     suspend fun crearHuerto(@Body huerto: Huerto): Response<Huerto>
+
+    @DELETE("api/huertos/{id}")
+    suspend fun borrarHuerto(@Path("id") id: String): Response<Unit>
 
 }
