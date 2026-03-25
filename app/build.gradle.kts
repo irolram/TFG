@@ -80,6 +80,8 @@ dependencies {
     implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation(libs.androidx.compose.foundation.layout)
 
+    implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation(libs.androidx.compose.runtime)
     // 7. Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

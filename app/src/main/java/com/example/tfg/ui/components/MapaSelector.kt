@@ -1,7 +1,9 @@
-package com.example.tfg.ui.components
+package com.example.tfg.ui.screen.user
 
 import android.view.MotionEvent
+import android.view.ViewGroup
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.*
@@ -10,6 +12,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -20,6 +23,9 @@ import org.osmdroid.views.overlay.Marker
 
 @Composable
 fun MapaSelectorUbicacion(
+    latitudActual: Double,
+    longitudActual: Double,
+    modoGpsActivo: Boolean,
     onUbicacionSeleccionada: (Double, Double) -> Unit
 ) {
     val context = LocalContext.current
@@ -28,76 +34,61 @@ fun MapaSelectorUbicacion(
     LaunchedEffect(Unit) {
         Configuration.getInstance().userAgentValue = context.packageName
     }
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(300.dp)
-            .clipToBounds()
-    ) {
+
+    Box(modifier = Modifier.fillMaxWidth().height(300.dp).clipToBounds()) {
         AndroidView(
             factory = { ctx ->
                 MapView(ctx).apply {
+                    layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                     setTileSource(TileSourceFactory.MAPNIK)
                     setMultiTouchControls(true)
-
-                    // Centramos el mapa por defecto al abrirlo
+                    minZoomLevel = 4.0
                     controller.setZoom(15.0)
                     controller.setCenter(GeoPoint(36.5283, -6.1901))
 
-                    // 🛑 EL ARREGLO PARA EL BUG DEL ZOOM Y DESPLAZAMIENTO
-                    // Esto le dice a la pantalla: "No te muevas mientras el usuario toca el mapa"
                     setOnTouchListener { view, event ->
                         when (event.action) {
-                            MotionEvent.ACTION_DOWN,
-                            MotionEvent.ACTION_MOVE -> {
-                                // Bloqueamos el scroll de la columna padre
-                                view.parent?.requestDisallowInterceptTouchEvent(true)
-                            }
-
-                            MotionEvent.ACTION_UP,
-                            MotionEvent.ACTION_CANCEL -> {
-                                // Devolvemos el control del scroll a la pantalla normal
-                                view.parent?.requestDisallowInterceptTouchEvent(false)
-                            }
+                            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> view.parent?.requestDisallowInterceptTouchEvent(true)
+                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> view.parent?.requestDisallowInterceptTouchEvent(false)
                         }
-                        false // Devolvemos false para que el mapa siga calculando el zoom internamente
+                        false
                     }
 
-
-                    // Creamos el "escuchador" de toques en el mapa
-                    val receptorToques = object : MapEventsReceiver {
+                    overlays.add(MapEventsOverlay(object : MapEventsReceiver {
                         override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
-                            // 1. Si ya había una chincheta antes, la borramos
                             marcadorActual?.let { overlays.remove(it) }
-
-                            // 2. Creamos la nueva chincheta donde el usuario ha tocado
-                            val nuevoMarcador = Marker(this@apply).apply {
+                            marcadorActual = Marker(this@apply).apply {
                                 position = p
-                                title = "Ubicación elegida"
+                                title = "Punto seleccionado"
                                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                             }
-
-                            overlays.add(nuevoMarcador)
-                            marcadorActual = nuevoMarcador
-                            invalidate() // Refrescamos el mapa para que se vea el cambio
-
-                            // 3. Le pasamos las coordenadas a tu pantalla
+                            overlays.add(marcadorActual)
+                            invalidate()
                             onUbicacionSeleccionada(p.latitude, p.longitude)
-
                             return true
                         }
-
-                        override fun longPressHelper(p: GeoPoint): Boolean {
-                            return false // No hacemos nada si mantiene pulsado
-                        }
-                    }
-
-                    // Añadimos la capa invisible que detecta los toques
-                    overlays.add(MapEventsOverlay(receptorToques))
+                        override fun longPressHelper(p: GeoPoint) = false
+                    }))
                 }
             },
-            // Le damos una altura fija para que no ocupe toda la pantalla de crear huerto
-            modifier = Modifier.fillMaxWidth().height(300.dp)
+            update = { vistaMapa ->
+                if (latitudActual != 0.0 && longitudActual != 0.0) {
+                    val punto = GeoPoint(latitudActual, longitudActual)
+                    vistaMapa.controller.animateTo(punto)
+                    marcadorActual?.let { vistaMapa.overlays.remove(it) }
+                    marcadorActual = Marker(vistaMapa).apply {
+                        position = punto
+                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                        if (modoGpsActivo) {
+                            icon = ContextCompat.getDrawable(context, android.R.drawable.ic_menu_mylocation)
+                            title = "📍 Mi GPS"
+                        }
+                    }
+                    vistaMapa.overlays.add(marcadorActual)
+                    vistaMapa.invalidate()
+                }
+            },
+            modifier = Modifier.fillMaxSize()
         )
     }
 }

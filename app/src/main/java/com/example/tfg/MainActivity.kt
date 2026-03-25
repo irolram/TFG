@@ -1,7 +1,6 @@
 package com.example.tfg
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -26,12 +25,13 @@ import com.example.tfg.ui.screen.LoginEcoDropScreen
 import com.example.tfg.ui.screen.admin.PantallaPrincipalAdmin
 import com.example.tfg.ui.screen.user.CrearHuertoScreen
 import com.example.tfg.ui.screen.user.DetalleHuertoScreen
-import com.example.tfg.ui.screen.user.MisHuertosScreen
 import com.example.tfg.ui.screen.user.PantallaPrincipalUser
 import com.example.tfg.ui.screen.user.VerdePrenda
+import com.example.tfg.ui.screen.user.BuscarCultivoScreen // 🚩 Importamos la nueva pantalla
 import com.example.tfg.ui.screens.RegisterScreen
 import com.example.tfg.ui.theme.TFGTheme
 import com.example.tfg.viewModel.HuertosViewModel
+import com.example.tfg.viewModel.PlantaViewModel // 🚩 Importamos el nuevo ViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
@@ -46,52 +46,40 @@ class MainActivity : ComponentActivity() {
                 val auth = FirebaseAuth.getInstance()
                 val currentUser = auth.currentUser
 
-                // Instanciamos el ViewModel de los huertos (que se compartirá entre pantallas)
-                val viewModel = viewModel<HuertosViewModel>()
+                // ViewModels
+                val huertosViewModel = viewModel<HuertosViewModel>()
+                val plantasViewModel = viewModel<PlantaViewModel>()
 
-                // Instanciamos el TokenManager para guardar el JWT
                 val tokenManager = remember { TokenManager(context) }
 
                 NavHost(
                     navController = navController,
                     startDestination = if (currentUser == null) "login" else "splash"
                 ) {
-                    // 1. Pantalla de carga mientras sincronizamos con la API
+                    // 1. Pantalla de carga
                     composable("splash") {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(color = VerdePrenda)
                         }
                     }
 
-                    // 2. Pantalla de Login
-                    composable("login") {
-                        LoginEcoDropScreen(navController)
-                    }
+                    // 2. Login y Registro
+                    composable("login") { LoginEcoDropScreen(navController) }
+                    composable("register") { RegisterScreen(navController) }
 
-                    // 3. Pantalla de Registro
-                    composable("register") {
-                        RegisterScreen(navController)
-                    }
-
-                    // 4. Pantalla Principal Usuario
+                    // 3. Menús Principales
                     composable("main_menuUser") {
-                        PantallaPrincipalUser(navController = navController, viewModel = viewModel)
+                        PantallaPrincipalUser(navController = navController, viewModel = huertosViewModel)
                     }
-
-                    // 5. Pantalla Principal Admin
                     composable("main_menuAdmin") {
-                        PantallaPrincipalAdmin(navController, viewModel)
+                        PantallaPrincipalAdmin(navController, huertosViewModel)
                     }
 
-                    // 6. Pantalla Crear Huerto
+                    // 4. Gestión de Huertos
                     composable("crear_huerto") {
-                        CrearHuertoScreen(navController = navController, viewModel = viewModel)
+                        CrearHuertoScreen(navController = navController, viewModel = huertosViewModel)
                     }
 
-                    // 7. Pantalla Detalle Huerto (Con paso de parámetros)
                     composable(
                         route = "detalle_huerto/{huertoId}",
                         arguments = listOf(navArgument("huertoId") { type = NavType.StringType })
@@ -99,14 +87,34 @@ class MainActivity : ComponentActivity() {
                         val huertoId = backStackEntry.arguments?.getString("huertoId") ?: ""
                         DetalleHuertoScreen(
                             navController = navController,
-                            viewModel = viewModel,
-                            huertoId = huertoId
+                            viewModel = huertosViewModel,
+                            huertoId = huertoId,
+                            tokenManager = tokenManager
+                        )
+                    }
+
+                    composable(
+                        route = "buscar_cultivo/{huertoId}",
+                        arguments = listOf(navArgument("huertoId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val huertoId = backStackEntry.arguments?.getString("huertoId") ?: ""
+
+                        BuscarCultivoScreen(
+                            huertoId = huertoId,
+                            onCultivoGuardado = {
+                                navController.popBackStack()
+                            }
                         )
                     }
                 }
 
-                // Lógica de Autenticación Automática (Si ya hay sesión en Firebase)
+                LaunchedEffect(Unit) {
+                    auth.signOut()
+                    tokenManager.clearAuth()
+                }
+                // Lógica de Autenticación Automática
                 LaunchedEffect(currentUser) {
+
                     if (currentUser != null) {
                         try {
                             val loginRequest = LoginRequest(
@@ -114,42 +122,24 @@ class MainActivity : ComponentActivity() {
                                 email = currentUser.email ?: "",
                             )
 
-                            // Pedimos el Token a nuestra API (Railway)
                             val response = RetrofitClient.getApiService(context).loginConServidor(loginRequest)
 
                             if (response.isSuccessful) {
                                 val authData = response.body()
-
                                 if (authData != null) {
-                                    // Guardamos el token
                                     tokenManager.saveToken(authData.accessToken, authData.userId)
-                                    Log.d("API_AUTH", "¡Éxito! Token guardado. Rol: ${authData.rol}")
 
-                                    // Redirigimos según el ROL
-                                    if (authData.rol == "ADMIN") {
-                                        navController.navigate("main_menuAdmin") {
-                                            popUpTo("splash") { inclusive = true }
-                                            popUpTo("login") { inclusive = true }
-                                        }
-                                    } else {
-                                        navController.navigate("main_menuUser") {
-                                            popUpTo("splash") { inclusive = true }
-                                            popUpTo("login") { inclusive = true }
-                                        }
+                                    val destino = if (authData.rol == "ADMIN") "main_menuAdmin" else "main_menuUser"
+                                    navController.navigate(destino) {
+                                        popUpTo("splash") { inclusive = true }
+                                        popUpTo("login") { inclusive = true }
                                     }
                                 }
                             } else {
-                                Log.e("API_AUTH", "Error en el servidor: ${response.code()} - ${response.errorBody()?.string()}")
-                                // Si falla el backend, mandamos al login por seguridad
-                                navController.navigate("login") {
-                                    popUpTo("splash") { inclusive = true }
-                                }
+                                navController.navigate("login") { popUpTo("splash") { inclusive = true } }
                             }
                         } catch (e: Exception) {
-                            Log.e("API_AUTH", "Fallo de red: ${e.message}")
-                            navController.navigate("login") {
-                                popUpTo("splash") { inclusive = true }
-                            }
+                            navController.navigate("login") { popUpTo("splash") { inclusive = true } }
                         }
                     }
                 }

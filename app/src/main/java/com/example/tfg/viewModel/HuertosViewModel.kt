@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.tfg.data.model.Cultivo
 import com.example.tfg.data.model.Huerto
 import com.example.tfg.data.network.IApiService
 import kotlinx.coroutines.launch
@@ -17,7 +18,7 @@ class HuertosViewModel : ViewModel() {
 
     fun cargarMisHuertos(apiService: IApiService, nombre: String,descripcion: String) {
         viewModelScope.launch {
-            // Encendemos la ruedita de carga y limpiamos errores previos
+
             cargando.value = true
             error.value = null
 
@@ -121,6 +122,52 @@ class HuertosViewModel : ViewModel() {
 
     }
     fun limpiarDatos() {
-        huertos.value = emptyList() // Vaciamos la lista de huertos
+        huertos.value = emptyList()
+    }
+
+
+
+    var cultivosDelHuerto = mutableStateOf<List<Cultivo>>(emptyList())
+    var cargandoCultivos = mutableStateOf(false)
+
+
+    fun cargarCultivosDeUnHuerto(apiService: IApiService, huertoId: String) {
+        viewModelScope.launch {
+            cargandoCultivos.value = true
+
+            try {
+                val respuesta = apiService.obtenerCultivosDelHuerto(huertoId)
+
+                if (respuesta.isSuccessful) {
+                    cultivosDelHuerto.value = respuesta.body() ?: emptyList()
+                } else {
+                    cultivosDelHuerto.value = emptyList()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                cultivosDelHuerto.value = emptyList()
+            } finally {
+                cargandoCultivos.value = false
+            }
+        }
+    }
+    private val _cultivosDelHuerto = mutableStateOf<List<Cultivo>>(emptyList())
+
+
+    fun eliminarCultivoDelHuerto(apiService: IApiService, huertoId: String, cultivoId: String, token: String) {
+        viewModelScope.launch {
+            try {
+                val tokenConFormato = if (token.startsWith("Bearer ")) token else "Bearer $token"
+                val response = apiService.eliminarCultivo(tokenConFormato, huertoId, cultivoId)
+
+                if (response.isSuccessful) {
+                    cargarCultivosDeUnHuerto(apiService, huertoId)
+
+                    println("DEBUG: Lista refrescada tras borrar")
+                }
+            } catch (e: Exception) {
+                println("DEBUG: Error al refrescar: ${e.message}")
+            }
+        }
     }
 }
