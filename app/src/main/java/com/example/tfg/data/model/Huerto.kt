@@ -1,7 +1,7 @@
 package com.example.tfg.data.model
 
 
-
+// Modelo de datos para Huerto necesario para la representacion de un jardín en la app
 data class Huerto(
     val id: String? = null,
     val nombre: String,

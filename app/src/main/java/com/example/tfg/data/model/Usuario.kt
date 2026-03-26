@@ -1,5 +1,7 @@
 package com.example.tfg.data.model
 
+
+// Información del usuario
 data class Usuario(
     val id: String,
     val nombre: String,

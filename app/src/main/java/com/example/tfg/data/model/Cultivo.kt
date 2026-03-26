@@ -2,6 +2,8 @@ package com.example.tfg.data.model
 
 import com.google.gson.annotations.SerializedName
 
+
+// Modelo de datos para Cultivo necesario para la representacion de un cultivo en la app
 data class Cultivo(
     @SerializedName("id")
     val id: String? = null,

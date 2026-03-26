@@ -2,6 +2,7 @@ package com.example.tfg.data.model
 
 import com.google.gson.annotations.SerializedName
 
+// Información completa de una planta
 data class CatalogoDePlantas(
     val id: Long?,
     val nombre: String,

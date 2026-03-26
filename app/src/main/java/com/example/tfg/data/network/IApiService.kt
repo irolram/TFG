@@ -4,7 +4,7 @@ package com.example.tfg.data.network
 import com.example.tfg.data.model.Usuario
 import com.example.tfg.data.model.Huerto
 import com.example.tfg.data.model.LoginRequest
-import com.example.tfg.data.model.AuthResponse
+import com.example.tfg.data.model.RespuestaAuth
 import com.example.tfg.data.model.Cultivo
 import com.example.tfg.data.model.CatalogoDePlantas
 import com.example.tfg.data.model.RespuestaBusquedaPlantas
@@ -15,7 +15,7 @@ interface IApiService {
 
     // Este es el endpoint clave: Envías el UID de Firebase y recibes el JWT
     @POST("api/auth/login-app")
-    suspend fun loginConServidor(@Body request: LoginRequest): Response<AuthResponse>
+    suspend fun loginConServidor(@Body request: LoginRequest): Response<RespuestaAuth>
 
     // Obtener perfil del usuario actual (protegido por JWT)
     @GET("api/usuarios/{id}")

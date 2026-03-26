@@ -6,6 +6,7 @@ import com.google.gson.annotations.JsonAdapter
 import com.google.gson.annotations.SerializedName
 import java.lang.reflect.Type
 
+// Version ligera del dto para mostrar las listas de busqueda
 data class InfoBasicaPlanta(
     @SerializedName("id") val id: Int,
 
