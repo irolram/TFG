@@ -4,14 +4,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tfg.data.model.Cultivo
-import com.example.tfg.data.model.PlantaCatalogo // 🚩 Tu nuevo modelo
+import com.example.tfg.data.model.CatalogoDePlantas // 🚩 Tu nuevo modelo
 import com.example.tfg.data.network.IApiService
 import kotlinx.coroutines.launch
 
 class PlantaViewModel : ViewModel() {
 
     // Ahora guardamos la lista de tu propio catálogo
-    var resultadosBusqueda = mutableStateOf<List<PlantaCatalogo>>(emptyList())
+    var resultadosBusqueda = mutableStateOf<List<CatalogoDePlantas>>(emptyList())
 
     var buscando = mutableStateOf(false)
     var errorBusqueda = mutableStateOf<String?>(null)
@@ -42,7 +42,7 @@ class PlantaViewModel : ViewModel() {
     fun guardarPlantaEnHuerto(
         apiService: IApiService,
         huertoId: String,
-        plantaSeleccionada: PlantaCatalogo,
+        plantaSeleccionada: CatalogoDePlantas,
         onExito: () -> Unit
     ) {
         viewModelScope.launch {

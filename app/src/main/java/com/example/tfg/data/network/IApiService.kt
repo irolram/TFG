@@ -6,8 +6,7 @@ import com.example.tfg.data.model.Huerto
 import com.example.tfg.data.model.LoginRequest
 import com.example.tfg.data.model.AuthResponse
 import com.example.tfg.data.model.Cultivo
-import com.example.tfg.data.model.InfoBasicaPlanta
-import com.example.tfg.data.model.PlantaCatalogo
+import com.example.tfg.data.model.CatalogoDePlantas
 import com.example.tfg.data.model.RespuestaBusquedaPlantas
 import retrofit2.Response
 import retrofit2.http.*
@@ -50,7 +49,7 @@ interface IApiService {
     suspend fun obtenerCultivosDelHuerto(@Path("id") huertoId: String): Response<List<Cultivo>>
 
     @GET("api/catalogo/buscar")
-    suspend fun buscarEnCatalogo(@Query("nombre") nombre: String): List<PlantaCatalogo>
+    suspend fun buscarEnCatalogo(@Query("nombre") nombre: String): List<CatalogoDePlantas>
 
     @DELETE("api/huertos/{huertoId}/cultivos/{cultivoId}")
     suspend fun eliminarCultivo(

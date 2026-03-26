@@ -151,8 +151,6 @@ class HuertosViewModel : ViewModel() {
             }
         }
     }
-    private val _cultivosDelHuerto = mutableStateOf<List<Cultivo>>(emptyList())
-
 
     fun eliminarCultivoDelHuerto(apiService: IApiService, huertoId: String, cultivoId: String, token: String) {
         viewModelScope.launch {

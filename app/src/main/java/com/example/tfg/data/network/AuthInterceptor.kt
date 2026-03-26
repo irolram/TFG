@@ -10,7 +10,6 @@ import androidx.compose.remote.creation.first
 import kotlinx.coroutines.flow.first
 
 class AuthInterceptor(private val tokenManager: TokenManager) : Interceptor {
-    // En AuthInterceptor.kt
     override fun intercept(chain: Interceptor.Chain): Response {
         val token = runBlocking {
             tokenManager.accessToken.first()

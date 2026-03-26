@@ -27,11 +27,12 @@ import com.example.tfg.ui.screen.user.CrearHuertoScreen
 import com.example.tfg.ui.screen.user.DetalleHuertoScreen
 import com.example.tfg.ui.screen.user.PantallaPrincipalUser
 import com.example.tfg.ui.screen.user.VerdePrenda
-import com.example.tfg.ui.screen.user.BuscarCultivoScreen // 🚩 Importamos la nueva pantalla
+import com.example.tfg.ui.screen.user.BuscarCultivoScreen
+import com.example.tfg.ui.screen.user.DetalleCultivoScreen
 import com.example.tfg.ui.screens.RegisterScreen
 import com.example.tfg.ui.theme.TFGTheme
 import com.example.tfg.viewModel.HuertosViewModel
-import com.example.tfg.viewModel.PlantaViewModel // 🚩 Importamos el nuevo ViewModel
+import com.example.tfg.viewModel.PlantaViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
@@ -49,14 +50,14 @@ class MainActivity : ComponentActivity() {
                 // ViewModels
                 val huertosViewModel = viewModel<HuertosViewModel>()
                 val plantasViewModel = viewModel<PlantaViewModel>()
-
                 val tokenManager = remember { TokenManager(context) }
 
                 NavHost(
                     navController = navController,
+                    // Si ya hay usuario en Firebase, vamos al Splash para validar con el servidor
                     startDestination = if (currentUser == null) "login" else "splash"
                 ) {
-                    // 1. Pantalla de carga
+                    // 1. Pantalla de carga (Handshake con el servidor)
                     composable("splash") {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(color = VerdePrenda)
@@ -98,23 +99,27 @@ class MainActivity : ComponentActivity() {
                         arguments = listOf(navArgument("huertoId") { type = NavType.StringType })
                     ) { backStackEntry ->
                         val huertoId = backStackEntry.arguments?.getString("huertoId") ?: ""
-
                         BuscarCultivoScreen(
                             huertoId = huertoId,
-                            onCultivoGuardado = {
-                                navController.popBackStack()
-                            }
+                            onCultivoGuardado = { navController.popBackStack() }
+                        )
+                    }
+                    composable(
+                        route = "detalle_planta/{cultivoId}",
+                        arguments = listOf(navArgument("cultivoId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val cultivoId = backStackEntry.arguments?.getString("cultivoId") ?: ""
+                        DetalleCultivoScreen(
+                            navController = navController,
+                            viewModel = huertosViewModel,
+                            cultivoId = cultivoId
                         )
                     }
                 }
 
-                LaunchedEffect(Unit) {
-                    auth.signOut()
-                    tokenManager.clearAuth()
-                }
-                // Lógica de Autenticación Automática
-                LaunchedEffect(currentUser) {
 
+
+                LaunchedEffect(currentUser) {
                     if (currentUser != null) {
                         try {
                             val loginRequest = LoginRequest(
@@ -127,20 +132,26 @@ class MainActivity : ComponentActivity() {
                             if (response.isSuccessful) {
                                 val authData = response.body()
                                 if (authData != null) {
+                                    // Guardamos el token de Railway
                                     tokenManager.saveToken(authData.accessToken, authData.userId)
 
                                     val destino = if (authData.rol == "ADMIN") "main_menuAdmin" else "main_menuUser"
                                     navController.navigate(destino) {
-                                        popUpTo("splash") { inclusive = true }
-                                        popUpTo("login") { inclusive = true }
+                                        popUpTo(0) { inclusive = true }
                                     }
                                 }
                             } else {
-                                navController.navigate("login") { popUpTo("splash") { inclusive = true } }
+
+                                auth.signOut()
+                                tokenManager.clearAuth()
+                                navController.navigate("login") { popUpTo(0) }
                             }
                         } catch (e: Exception) {
-                            navController.navigate("login") { popUpTo("splash") { inclusive = true } }
+                            // Error de conexión o servidor caído
+                            navController.navigate("login") { popUpTo(0) }
                         }
+                    } else {
+                        navController.navigate("login") { popUpTo(0) }
                     }
                 }
             }
