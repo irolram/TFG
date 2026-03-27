@@ -21,6 +21,7 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 
+// Función para mostrar el mapa con el punto seleccionado
 @Composable
 fun MapaSelectorUbicacion(
     latitudActual: Double,
@@ -31,11 +32,14 @@ fun MapaSelectorUbicacion(
     val context = LocalContext.current
     var marcadorActual by remember { mutableStateOf<Marker?>(null) }
 
+    // Configuramos la librería OSMDroid
     LaunchedEffect(Unit) {
         Configuration.getInstance().userAgentValue = context.packageName
     }
 
     Box(modifier = Modifier.fillMaxWidth().height(300.dp).clipToBounds()) {
+
+        //  AndroidView sirve para mostrar un componente de Android en Compose (en este caso un mapa)
         AndroidView(
             factory = { ctx ->
                 MapView(ctx).apply {

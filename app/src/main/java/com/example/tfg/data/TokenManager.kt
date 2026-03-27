@@ -1,6 +1,5 @@
 package com.example.tfg.data
 
-
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -12,6 +11,7 @@ import kotlin.text.get
 
 // Creamos la instancia de DataStore
 private val Context.dataStore by preferencesDataStore(name = "auth_prefs")
+// Esta clase sirve para guardar el token de acceso (JWT)
 class TokenManager(private val context: Context) {
 
     companion object {

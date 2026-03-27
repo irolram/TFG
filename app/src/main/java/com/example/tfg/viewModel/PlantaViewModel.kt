@@ -10,13 +10,13 @@ import kotlinx.coroutines.launch
 
 class PlantaViewModel : ViewModel() {
 
-    // Ahora guardamos la lista de tu propio catálogo
+    // Variable para almacenar los resultados de la búsqueda
     var resultadosBusqueda = mutableStateOf<List<CatalogoDePlantas>>(emptyList())
 
     var buscando = mutableStateOf(false)
     var errorBusqueda = mutableStateOf<String?>(null)
 
-    // 🔍 1. Buscar plantas en TU catálogo de Railway
+    // Función para Buscar plantas en el catálogo de Railway
     fun buscarPlantas(apiService: IApiService, nombre: String) {
         if (nombre.length < 2) {
             resultadosBusqueda.value = emptyList()
@@ -27,7 +27,7 @@ class PlantaViewModel : ViewModel() {
             buscando.value = true
             errorBusqueda.value = null
             try {
-                // Llamamos a tu endpoint de Spring Boot
+                // Llamamos al endpoint de Spring Boot
                 val respuesta = apiService.buscarEnCatalogo(nombre.trim())
                 resultadosBusqueda.value = respuesta
             } catch (e: Exception) {
@@ -49,13 +49,10 @@ class PlantaViewModel : ViewModel() {
             try {
                 val cultivoParaEnviar = Cultivo(
                     nombre = plantaSeleccionada.nombre,
-                    variedad = plantaSeleccionada.nombreCientifico ?: "Especie común",
                     estado = "PLANTADO",
                     fechaPlantacion = System.currentTimeMillis(),
-                    icono = plantaSeleccionada.iconoUrl ?: "",
-                    riego = plantaSeleccionada.riego ?: "Moderado",
-                    luzSolar = plantaSeleccionada.luzSolar ?: "Pleno sol",
-                    huertoId = huertoId
+                    huertoId = huertoId,
+                    infoCatalogo = plantaSeleccionada
                 )
 
                 val respuesta = apiService.aniadirCultivo(huertoId, cultivoParaEnviar)

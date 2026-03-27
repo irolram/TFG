@@ -16,7 +16,7 @@ import org.osmdroid.views.overlay.Marker
 fun MapaHuertosScreen(huertos: List<Huerto>) {
     val context = LocalContext.current
 
-    // Configuración obligatoria de OSMDroid (Pide un "User Agent" con el nombre de tu app)
+    // Configuración obligatoria de OSMDroid
     LaunchedEffect(Unit) {
         Configuration.getInstance().userAgentValue = context.packageName
     }
@@ -25,7 +25,7 @@ fun MapaHuertosScreen(huertos: List<Huerto>) {
     AndroidView(
         factory = { ctx ->
             MapView(ctx).apply {
-                // Configuramos el estilo del mapa (Gratis y sin API Key)
+                // Configuramos el estilo del mapa
                 setTileSource(TileSourceFactory.MAPNIK)
                 setMultiTouchControls(true) // Permitir hacer zoom con los dedos
 

@@ -28,10 +28,10 @@ fun DetalleCultivoScreen(
     viewModel: HuertosViewModel,
     cultivoId: String
 ) {
-    // 🚩 Usamos el nombre intuitivo que acordamos
+    // Variable para almacenar el cultivo actual
     val miCultivo = viewModel.cultivosDelHuerto.value.find { it.id == cultivoId }
 
-    // 💡 Creamos una referencia corta a la info del catálogo para no escribir tanto
+    // Creamos una referencia corta a la info del catálogo
     val detalleEspecie = miCultivo?.infoCatalogo
 
     Scaffold(
@@ -65,7 +65,6 @@ fun DetalleCultivoScreen(
                 // --- CABECERA ---
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AsyncImage(
-                        // 🚩 CAMBIO: Ahora el icono viene del catálogo
                         model = detalleEspecie?.icono?.trim(),
                         contentDescription = null,
                         modifier = Modifier
@@ -94,7 +93,7 @@ fun DetalleCultivoScreen(
                 Spacer(Modifier.height(24.dp))
 
                 // --- FICHA TÉCNICA ---
-                Text("📋 Guía técnica de la especie", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(" Guía técnica de la especie", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Spacer(Modifier.height(8.dp))
 
                 if (detalleEspecie != null) {
@@ -104,7 +103,7 @@ fun DetalleCultivoScreen(
                 Spacer(Modifier.height(24.dp))
 
                 // --- INSTRUCCIONES PERSONALIZADAS ---
-                Text("🌱 Consejos de cultivo", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(" Consejos de cultivo", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Spacer(Modifier.height(8.dp))
 
                 Card(

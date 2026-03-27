@@ -42,17 +42,17 @@ fun DetalleHuertoScreen(
     val context = LocalContext.current
     val apiService = remember { RetrofitClient.getApiService(context) }
 
-    // 1. Observamos el token del DataStore
+    // Observamos el token del DataStore
     val token by tokenManager.accessToken.collectAsState(initial = null)
 
-    // 2. Observamos los datos del ViewModel
+    // Observamos los datos del ViewModel
     val cultivos by viewModel.cultivosDelHuerto
     val cargando by viewModel.cargandoCultivos
 
     // Buscamos el huerto actual en la lista para obtener latitud/longitud
     val huertoActual = viewModel.huertos.value.find { it.id == huertoId }
 
-    // 3. Disparamos la carga de cultivos al entrar
+    // Disparamos la carga de cultivos al entrar
     LaunchedEffect(huertoId) {
         viewModel.cargarCultivosDeUnHuerto(apiService, huertoId)
     }
@@ -70,6 +70,7 @@ fun DetalleHuertoScreen(
             )
         },
         floatingActionButton = {
+            // Botón para añadir cultivo al huerto
             FloatingActionButton(
                 onClick = { navController.navigate("buscar_cultivo/$huertoId") },
                 containerColor = Color(0xFF4CAF50),
@@ -87,7 +88,7 @@ fun DetalleHuertoScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- 🌤️ SECCIÓN DE CLIMA ---
+            // Se muestra el clima del huerto
             if (huertoActual != null) {
                 WidgetClima(
                     latitud = huertoActual.latitud,
@@ -107,7 +108,7 @@ fun DetalleHuertoScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- 🌿 LISTADO DE CULTIVOS ---
+            // Lista de cultivos
             Text(
                 text = "Tus cultivos",
                 fontSize = 20.sp,
@@ -124,7 +125,7 @@ fun DetalleHuertoScreen(
             } else if (cultivos.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
                     Text(
-                        text = "Aún no tienes plantas aquí.\n¡Pulsa el botón + para empezar!",
+                        text = "Aún no tienes nada plantado aquí.\n¡Pulsa el botón + para empezar!",
                         textAlign = TextAlign.Center,
                         color = Color.Gray,
                         lineHeight = 20.sp
@@ -151,9 +152,9 @@ fun DetalleHuertoScreen(
                                 modifier = Modifier.padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Imagen circular
+
                                 AsyncImage(
-                                    model = cultivo.icono.trim(),
+                                    model = cultivo.infoCatalogo?.icono?.trim(),
                                     contentDescription = null,
                                     error = rememberVectorPainter(Icons.Default.Warning),
                                     modifier = Modifier

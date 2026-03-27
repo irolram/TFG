@@ -9,13 +9,17 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
+
+    // Conexión con Railway
     private const val BASE_URL_RAILWAY = "https://tfgapispringboot-production.up.railway.app/"
 
 
+    // Variable privada para el interceptor
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
+    // Función para crear el servicio de API
     fun getApiService(context: Context): IApiService {
         val tokenManager = TokenManager(context)
 

@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,8 +24,10 @@ import com.example.tfg.viewModel.HuertosViewModel
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
+import com.example.tfg.ui.components.ItemHuerto
 import com.example.tfg.ui.components.WidgetClima
 
+// Pantalla donde se visualizan los huertos del usuario
 @Composable
 fun MisHuertosScreen(navController: NavHostController, viewModel: HuertosViewModel) {
     val context = LocalContext.current
@@ -36,14 +37,15 @@ fun MisHuertosScreen(navController: NavHostController, viewModel: HuertosViewMod
     val cargando = viewModel.cargando.value
     val error = viewModel.error.value
 
-    // 🔌 Variable para controlar si se muestra el aviso de confirmación
+    // Variable para controlar si se muestra el aviso de confirmación
     var huertoABorrar by remember { mutableStateOf<Huerto?>(null) }
 
+    // Cargamos los huertos al iniciar la pantalla
     LaunchedEffect(Unit) {
         viewModel.obtenerTodosLosHuertos(apiService)
     }
 
-    // 🔌 DIÁLOGO DE CONFIRMACIÓN
+
     if (huertoABorrar != null) {
         AlertDialog(
             onDismissRequest = { huertoABorrar = null },
@@ -93,7 +95,7 @@ fun MisHuertosScreen(navController: NavHostController, viewModel: HuertosViewMod
                         ItemHuerto(
                             huerto = huerto,
                             onClick = { navController.navigate("detalle_huerto/${huerto.id}") },
-                            // 🔌 Le pasamos la acción de borrar al componente
+                            // Le pasamos la acción de borrar al componente
                             onDeleteClick = { huertoABorrar = huerto }
                         )
                     }
@@ -101,77 +103,4 @@ fun MisHuertosScreen(navController: NavHostController, viewModel: HuertosViewMod
             }
         }
     }
-}
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ItemHuerto(huerto: Huerto, onClick: () -> Unit, onDeleteClick: () -> Unit) {
-
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { dismissValue ->
-            if (dismissValue == SwipeToDismissBoxValue.StartToEnd || dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                onDeleteClick()
-                false
-            } else {
-                false
-            }
-        }
-    )
-
-    SwipeToDismissBox(
-        state = dismissState,
-        backgroundContent = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(bottom = 8.dp)
-                    .background(Color.Red, shape = CardDefaults.shape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Borrar Huerto",
-                    tint = Color.White,
-                    modifier = Modifier.size(36.dp)
-                )
-            }
-        },
-        content = {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onClick() },
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = huerto.nombre,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = huerto.descripcion,
-                        fontSize = 14.sp,
-                        color = Color.DarkGray,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    WidgetClima(latitud = huerto.latitud, longitud = huerto.longitud)
-                }
-            }
-        }
-    )
 }

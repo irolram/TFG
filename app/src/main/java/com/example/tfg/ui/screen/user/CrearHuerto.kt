@@ -19,13 +19,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import com.example.tfg.data.network.RetrofitClient
 import com.example.tfg.viewModel.HuertosViewModel
 import com.google.android.gms.location.LocationServices
 
+//Pantalla para crear un huerto nuevo
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewModel) {
@@ -42,10 +42,11 @@ fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewMo
     val estaGuardando = viewModel.guardando.value
     val guardadoExitoso = viewModel.guardadoExitoso.value
 
-    // Lanzador de permisos mejorado
+    // Lanzador de permisos
     val permisoLanzador = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permisos ->
+        // Si el permiso es true, el permiso es concedido, sino será denegado
         if (permisos[Manifest.permission.ACCESS_FINE_LOCATION] == true) {
             Log.d("MI_TFG_GPS", "Permiso concedido tras solicitud")
             Toast.makeText(context, "¡Permiso aceptado! Pulsa el botón de nuevo.", Toast.LENGTH_SHORT).show()
@@ -54,7 +55,7 @@ fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewMo
             Toast.makeText(context, "Se necesita el GPS para situar el huerto.", Toast.LENGTH_LONG).show()
         }
     }
-
+    // Si el guardado es exitoso vuelve a la pantalla anterior
     LaunchedEffect(guardadoExitoso) {
         if (guardadoExitoso) {
             navController.popBackStack()

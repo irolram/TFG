@@ -43,6 +43,7 @@ fun PantallaPrincipalUser(navController: NavHostController, viewModel: HuertosVi
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = VerdePrenda),
                 actions = {
                     IconButton(
+                        // Sale de la sesión y borra el token
                         onClick = {
                             FirebaseAuth.getInstance().signOut()
                             scope.launch {
@@ -50,6 +51,7 @@ fun PantallaPrincipalUser(navController: NavHostController, viewModel: HuertosVi
                                 tokenManager.clearAuth()
                                 viewModel.limpiarDatos()
                             }
+                            // Se dirige al login
                             navController.navigate("login") {
                                 popUpTo(0) { inclusive = true }
                             }

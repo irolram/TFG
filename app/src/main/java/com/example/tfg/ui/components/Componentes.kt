@@ -1,5 +1,7 @@
 package com.example.tfg.ui.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -13,11 +15,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tfg.ui.screens.VerdePrimario
 import com.example.tfg.ui.screens.VerdeSecundario
 import com.example.tfg.data.model.CatalogoDePlantas
+import com.example.tfg.data.model.Huerto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,8 +56,9 @@ fun HuertoTextField(
     }
 }
 
+// Función para mostrar la ficha técnica de la planta
 @Composable
-fun FichaTecnicaSimple(planta: PlantaCatalogo) { // 🚩 Asegúrate que el tipo coincide (PlantaCatalogo)
+fun FichaTecnicaSimple(planta: CatalogoDePlantas) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -69,7 +74,7 @@ fun FichaTecnicaSimple(planta: PlantaCatalogo) { // 🚩 Asegúrate que el tipo 
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 🚩 Ahora sacamos todo de 'planta'
+
             InfoItem(label = "Riego:", valor = planta.riego ?: "N/A", icon = Icons.Default.WaterDrop)
             InfoItem(label = "Luz:", valor = planta.luzSolar ?: "N/A", icon = Icons.Default.LightMode)
             InfoItem(label = "Profundidad:", valor = planta.profundidadSiembra ?: "N/A", icon = Icons.Default.Straighten)
@@ -77,9 +82,9 @@ fun FichaTecnicaSimple(planta: PlantaCatalogo) { // 🚩 Asegúrate que el tipo 
         }
     }
 }
-
+// Función para personalizar las instrucciones de cada cultivo
 @Composable
-fun SeccionInstrucciones(instrucciones: String?) { // para mas adelante para personalizar las instrucciones
+fun SeccionInstrucciones(instrucciones: String?) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -109,6 +114,7 @@ fun SeccionInstrucciones(instrucciones: String?) { // para mas adelante para per
     }
 }
 
+// Función para mostrar la información de cada cultivo
 @Composable
 fun InfoItem(label: String, valor: String, icon: ImageVector) {
     Row(
@@ -123,6 +129,7 @@ fun InfoItem(label: String, valor: String, icon: ImageVector) {
     }
 }
 
+// Función para mostrar la información de cada cultivo menos detallado
 @Composable
 fun InfoRow(label: String, value: String) {
     Row(
@@ -133,3 +140,78 @@ fun InfoRow(label: String, value: String) {
         Text(value, fontWeight = FontWeight.Medium)
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ItemHuerto(huerto: Huerto, onClick: () -> Unit, onDeleteClick: () -> Unit) {
+
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { dismissValue ->
+            if (dismissValue == SwipeToDismissBoxValue.StartToEnd || dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                onDeleteClick()
+                false
+            } else {
+                false
+            }
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 8.dp)
+                    .background(Color.Red, shape = CardDefaults.shape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Borrar Huerto",
+                    tint = Color.White,
+                    modifier = Modifier.size(36.dp)
+                )
+            }
+        },
+        content = {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onClick() },
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = huerto.nombre,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = huerto.descripcion,
+                        fontSize = 14.sp,
+                        color = Color.DarkGray,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    WidgetClima(latitud = huerto.latitud, longitud = huerto.longitud)
+                }
+            }
+        }
+    )
+}
+

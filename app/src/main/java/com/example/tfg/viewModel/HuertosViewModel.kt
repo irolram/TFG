@@ -61,12 +61,17 @@ class HuertosViewModel : ViewModel() {
         errorGuardar.value = null
     }
 
+    // Función para obtener todos los huertos
     fun obtenerTodosLosHuertos(apiService: IApiService) {
+
+        //Lanzamos una corrutina
         viewModelScope.launch {
             cargando.value = true
             error.value = null
             try {
-                val response = apiService.obtenerHuertos() // Tu GET de siempre
+                // Intentamos obtener los huertos
+                val response = apiService.obtenerHuertos()
+                // Si es exitosa actualizamos la lista
                 if (response.isSuccessful) {
                     huertos.value = response.body() ?: emptyList()
                 }
@@ -78,15 +83,19 @@ class HuertosViewModel : ViewModel() {
         }
     }
 
+    // Función para crear un nuevo huerto
     fun crearNuevoHuerto(apiService: IApiService, nombre: String, descripcion: String,latitud: Double, longitud: Double) {
         viewModelScope.launch {
-            guardando.value = true // 1. Enciende la rueda
+            // Lanzamos la corrutina y establecemos las variables de estado
+            guardando.value = true
             errorGuardar.value = null
 
             try {
+                // Creamos el nuevo huerto
                 val nuevo = Huerto(nombre = nombre, descripcion = descripcion, latitud = latitud, longitud = longitud)
+                //Mandamos la petición a la api
                 val response = apiService.crearHuerto(nuevo)
-
+                // Si es exitosa actualizamos la lista
                 if (response.isSuccessful) {
                     guardadoExitoso.value = true
                     Log.d("DEBUG_HUERTO", "¡Huerto guardado con éxito!")
@@ -103,12 +112,16 @@ class HuertosViewModel : ViewModel() {
             }
         }
     }
+
+    //Función para borrar un huerto
     fun borrarHuerto(apiService: IApiService, idHuerto: String) {
+        //Lanzamos una corrutina
         viewModelScope.launch {
             try {
+                // Intentamos borrar en el servidor
                 val response = apiService.borrarHuerto(idHuerto)
+                //SI el borrado es exitoso actualizamos la lista
                 if (response.isSuccessful) {
-                    // Si se borra en el servidor, actualizamos la lista local
                     val listaActualizada = huertos.value.toMutableList()
                     listaActualizada.removeAll { it.id == idHuerto }
                     huertos.value = listaActualizada
@@ -121,6 +134,7 @@ class HuertosViewModel : ViewModel() {
         }
 
     }
+    //Función auxiliar para limpiar la lista de huertos
     fun limpiarDatos() {
         huertos.value = emptyList()
     }
@@ -131,13 +145,17 @@ class HuertosViewModel : ViewModel() {
     var cargandoCultivos = mutableStateOf(false)
 
 
+    // Cargamos los cultivos de un huerto
     fun cargarCultivosDeUnHuerto(apiService: IApiService, huertoId: String) {
+        // Lanzamos una corrutina
         viewModelScope.launch {
             cargandoCultivos.value = true
 
             try {
+                // Variable que almacena la respuesta de la API
                 val respuesta = apiService.obtenerCultivosDelHuerto(huertoId)
 
+                // Si la respuesta es exitosa y el cuerpo no es nulo, actualizamos la lista
                 if (respuesta.isSuccessful) {
                     cultivosDelHuerto.value = respuesta.body() ?: emptyList()
                 } else {
@@ -152,12 +170,18 @@ class HuertosViewModel : ViewModel() {
         }
     }
 
+    // Borramos un cultivo de un huerto
     fun eliminarCultivoDelHuerto(apiService: IApiService, huertoId: String, cultivoId: String, token: String) {
+
+        // Lanzamos una corrutina
         viewModelScope.launch {
             try {
+                // Si el token no empieza por "Bearer ", lo añadimos
                 val tokenConFormato = if (token.startsWith("Bearer ")) token else "Bearer $token"
+                // Variable que almacena la respuesta de la API
                 val response = apiService.eliminarCultivo(tokenConFormato, huertoId, cultivoId)
 
+                // Si es exitosa actualizamos la lista
                 if (response.isSuccessful) {
                     cargarCultivosDeUnHuerto(apiService, huertoId)
 

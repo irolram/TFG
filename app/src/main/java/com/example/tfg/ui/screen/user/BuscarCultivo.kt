@@ -92,7 +92,7 @@ fun BuscarCultivoScreen(
                     ) {
                         //  Imagen directa de tu base de datos (Unsplash, etc.)
                         AsyncImage(
-                            model = planta.iconoUrl,
+                            model = planta.icono,
                             contentDescription = null,
                             modifier = Modifier
                                 .size(65.dp)

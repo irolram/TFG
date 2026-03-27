@@ -26,12 +26,11 @@ fun WidgetClima(latitud: Double, longitud: Double) {
     var cargando by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf(false) }
 
-    // 🔄 Variable para forzar la recarga
+    // Variable para forzar la recarga
     var version by remember { mutableIntStateOf(0) }
 
     val apiKey = "8cbe46aee05331a0d8229a37daa15f61"
 
-    // Ahora escucha también a 'version'
     LaunchedEffect(latitud, longitud, version) {
         if (latitud != 0.0 && longitud != 0.0) {
             cargando = true
@@ -83,12 +82,11 @@ fun WidgetClima(latitud: Double, longitud: Double) {
                     "Zona Rural / Huerto"
                 }
 
-                // 🌤️ Sacamos el ID del icono (ej: "01d", "04n")
                 val iconoCode = prevision.clima.firstOrNull()?.icono ?: "01d"
                 val urlIcono = "https://openweathermap.org/img/wn/${iconoCode}@2x.png"
 
                 Column {
-                    // Fila Superior: Ciudad + Botón Refrescar
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -111,7 +109,6 @@ fun WidgetClima(latitud: Double, longitud: Double) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Bloque Izquierdo: Icono dinámico + Temperatura
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             AsyncImage(
                                 model = urlIcono,
@@ -134,7 +131,6 @@ fun WidgetClima(latitud: Double, longitud: Double) {
                             }
                         }
 
-                        // Bloque Derecho: Lluvia, Humedad y Viento
                         Column(horizontalAlignment = Alignment.End) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text("${(prevision.probabilidadLluvia * 100).toInt()}%", fontSize = 12.sp, fontWeight = FontWeight.Bold)
