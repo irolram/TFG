@@ -66,6 +66,8 @@ interface IApiService {
     @GET("api/catalogo/buscar")
     suspend fun buscarEnCatalogo(@Query("nombre") nombre: String): List<CatalogoDePlantas>
 
+    @GET("api/catalogo")
+    suspend fun obtenerTodoElCatalogo(): List<CatalogoDePlantas>
     }
 
 

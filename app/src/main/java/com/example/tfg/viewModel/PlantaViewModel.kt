@@ -1,14 +1,18 @@
 package com.example.tfg.viewModel
 
+import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tfg.data.model.Cultivo
 import com.example.tfg.data.model.CatalogoDePlantas // 🚩 Tu nuevo modelo
 import com.example.tfg.data.network.IApiService
+import com.example.tfg.data.network.WeatherClient.apiService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-class PlantaViewModel : ViewModel() {
+class PlantaViewModel(private val apiService: IApiService) : ViewModel() {
 
     // Variable para almacenar los resultados de la búsqueda
     var resultadosBusqueda = mutableStateOf<List<CatalogoDePlantas>>(emptyList())
@@ -65,6 +69,28 @@ class PlantaViewModel : ViewModel() {
             } catch (e: Exception) {
                 errorBusqueda.value = "Fallo de conexión con el servidor"
                 e.printStackTrace()
+            }
+        }
+    }
+
+    val cargando = mutableStateOf(false)
+
+    init {
+        cargarCatalogoInicial()
+    }
+
+    fun cargarCatalogoInicial() {
+        viewModelScope.launch(Dispatchers.IO) {
+            cargando.value = true
+            try {
+                val respuesta = apiService.obtenerTodoElCatalogo()
+                withContext(Dispatchers.Main) {
+                    resultadosBusqueda.value = respuesta
+                }
+            } catch (e: Exception) {
+                Log.e("API", "Error al cargar catálogo inicial: ${e.message}")
+            } finally {
+                cargando.value = false
             }
         }
     }
