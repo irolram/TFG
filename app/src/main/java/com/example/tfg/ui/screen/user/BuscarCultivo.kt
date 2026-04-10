@@ -23,33 +23,29 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tfg.viewModel.PlantaViewModel
 import coil.compose.AsyncImage
 import com.example.tfg.data.network.RetrofitClient
-
 @Composable
 fun BuscarCultivoScreen(
     huertoId: String,
-    onCultivoGuardado: () -> Unit,
-    viewModel: PlantaViewModel = viewModel()
+    viewModel: PlantaViewModel,
+    onCultivoGuardado: () -> Unit
 ) {
     var textoBusqueda by remember { mutableStateOf("") }
     val resultados by viewModel.resultadosBusqueda
     val buscando by viewModel.buscando
     val error by viewModel.errorBusqueda
-    val context = LocalContext.current
-
-    // 🔌 Ahora solo necesitamos TU API de Railway
-    val apiService = remember { RetrofitClient.getApiService(context) }
+    // Ya no necesitamos crear el apiService aquí, ¡ya lo tiene el ViewModel!
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("Añadir nuevo cultivo", fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Text("Búsqueda en catálogo propio", fontSize = 12.sp, color = Color(0xFF4CAF50))
 
-        // 🔍 BARRA DE BÚSQUEDA
+        // BARRA DE BÚSQUEDA
         OutlinedTextField(
             value = textoBusqueda,
             onValueChange = {
                 textoBusqueda = it
-                // Buscamos directamente en tu Spring Boot
-                viewModel.buscarPlantas(apiService, it)
+                // Usamos la función del ViewModel (que ya conoce el apiService)
+                viewModel.buscarPlantas(it)
             },
             label = { Text("¿Qué quieres plantar? (ej: Tomate)") },
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -65,19 +61,29 @@ fun BuscarCultivoScreen(
             Text(text = it, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
         }
 
-        // 🌿 LISTA DE RESULTADOS DEL CATÁLOGO
+        // LISTA DE RESULTADOS
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
+            // Si no hay resultados y no está buscando, podrías poner un aviso
+            if (resultados.isEmpty() && !buscando) {
+                item {
+                    Text(
+                        "No se han encontrado plantas en el catálogo",
+                        modifier = Modifier.padding(16.dp),
+                        color = Color.Gray
+                    )
+                }
+            }
+
             items(resultados) { planta ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
                             viewModel.guardarPlantaEnHuerto(
-                                apiService,
                                 huertoId,
                                 planta
                             ) {
@@ -90,9 +96,8 @@ fun BuscarCultivoScreen(
                         modifier = Modifier.padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        //  Imagen directa de tu base de datos (Unsplash, etc.)
                         AsyncImage(
-                            model = planta.icono,
+                            model = planta.icono, // Asegúrate que en PlantaViewModel sea icono_url o icono
                             contentDescription = null,
                             modifier = Modifier
                                 .size(65.dp)
@@ -108,7 +113,6 @@ fun BuscarCultivoScreen(
                                 fontSize = 17.sp
                             )
 
-                            // Información de cultivo sacada de tu propia DB
                             Text(
                                 text = "Sol: ${planta.luzSolar ?: "Pleno sol"}",
                                 fontSize = 13.sp,

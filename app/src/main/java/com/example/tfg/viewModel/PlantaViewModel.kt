@@ -21,7 +21,7 @@ class PlantaViewModel(private val apiService: IApiService) : ViewModel() {
     var errorBusqueda = mutableStateOf<String?>(null)
 
     // Función para Buscar plantas en el catálogo de Railway
-    fun buscarPlantas(apiService: IApiService, nombre: String) {
+    fun buscarPlantas(nombre: String) {
         if (nombre.length < 2) {
             resultadosBusqueda.value = emptyList()
             return
@@ -44,7 +44,6 @@ class PlantaViewModel(private val apiService: IApiService) : ViewModel() {
     }
 
     fun guardarPlantaEnHuerto(
-        apiService: IApiService,
         huertoId: String,
         plantaSeleccionada: CatalogoDePlantas,
         onExito: () -> Unit

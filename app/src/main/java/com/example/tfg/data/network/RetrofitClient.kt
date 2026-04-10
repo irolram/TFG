@@ -11,7 +11,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 object RetrofitClient {
 
     // Conexión con Railway
-    private const val BASE_URL_RAILWAY = "https://tfgapispringboot-production.up.railway.app/"
+    private const val BASE_URL_RAILWAY = "https://tfgapispringboot-production-fbf5.up.railway.app"
 
 
     // Variable privada para el interceptor

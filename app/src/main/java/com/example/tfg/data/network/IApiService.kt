@@ -8,6 +8,7 @@ import com.example.tfg.data.model.RespuestaAuth
 import com.example.tfg.data.model.Cultivo
 import com.example.tfg.data.model.CatalogoDePlantas
 import com.example.tfg.data.model.RespuestaBusquedaPlantas
+import com.example.tfg.data.model.Rol
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -68,7 +69,26 @@ interface IApiService {
 
     @GET("api/catalogo")
     suspend fun obtenerTodoElCatalogo(): List<CatalogoDePlantas>
-    }
+
+    @PUT("api/usuarios/{id}/rol")
+    suspend fun cambiarRol(
+        @Path("id") idObjetivo: String,
+        @Query("nuevoRol") nuevoRol: String
+    ): Response<String>
+
+        @GET("api/usuarios")
+        suspend fun listarUsuarios(): Response<List<Usuario>>
+        @DELETE("api/usuarios/{id}")
+        suspend fun eliminarUsuario(@Path("id") id: String): Response<Unit>
+
+        @PUT("api/usuarios/{id}/rol")
+        suspend fun actualizarRol(
+            @Path("id") idObjetivo: String,   // El ID que va en la URL {id}
+            @Query("nuevoRol") nuevoRol: Rol // El parámetro que va después del ? (ej: ?nuevoRol=MOD)
+        ): Response<String>
+}
+
+
 
 
 

@@ -18,81 +18,95 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.protobuf.LazyStringArrayList.emptyList
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.tfg.data.TokenManager
 import com.example.tfg.viewModel.HuertosViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlin.collections.emptyList
-
-val VerdePrenda = Color(0xFF4CAF50)
+val verdeEco = Color(0xFF4CAF50)
 val VerdeFondo = Color(0xFFE8F5E9)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaPrincipalUser(navController: NavHostController, viewModel: HuertosViewModel) {
-    var selectedItem by remember { mutableIntStateOf(0) }
-    val items = listOf("Mis Huertos","Mapa","Perfil")
+fun PantallaPrincipalUser(
+    navController: NavHostController,
+    viewModel: HuertosViewModel,
+    isDarkMode: Boolean,
+    onDarkModeChange: (Boolean) -> Unit,
+    selectedItem: Int,
+    onTabChange: (Int) -> Unit,
+    onLogout: () -> Unit
+) {
+    var usuario by remember { mutableStateOf<com.example.tfg.data.model.Usuario?>(null) }
+    val items = listOf("Mis Huertos", "Mapa", "Perfil")
     val icons = listOf(Icons.Filled.Eco, Icons.Filled.Map, Icons.Filled.Person)
+
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val colorPrimario = MaterialTheme.colorScheme.primary
+    val colorFondoSitio = MaterialTheme.colorScheme.background
+    val colorSuperficie = MaterialTheme.colorScheme.surface
+
+    LaunchedEffect(Unit) {
+        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+        android.util.Log.d("DEBUG_PERFIL", "UID de Firebase: $uid")
+
+        if (uid != null) {
+            try {
+                val apiService = com.example.tfg.data.network.RetrofitClient.getApiService(context)
+                val response = apiService.obtenerUsuarioPorId(uid)
+
+                if (response.isSuccessful) {
+                    usuario = response.body()
+                    android.util.Log.d("DEBUG_PERFIL", "Usuario cargado: ${usuario?.nombre}")
+                } else {
+                    android.util.Log.e(
+                        "DEBUG_PERFIL",
+                        "Error API: ${response.code()} - ${response.errorBody()?.string()}"
+                    )
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("DEBUG_PERFIL", "Error de conexión: ${e.message}")
+            }
+        } else {
+            android.util.Log.e("DEBUG_PERFIL", "El UID de Firebase es NULL")
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Eco Drop - Panel", color = Color.White) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = VerdePrenda),
-                actions = {
-                    IconButton(
-                        // Sale de la sesión y borra el token
-                        onClick = {
-                            FirebaseAuth.getInstance().signOut()
-                            scope.launch {
-                                val tokenManager = TokenManager(context)
-                                tokenManager.clearAuth()
-                                viewModel.limpiarDatos()
-                            }
-                            // Se dirige al login
-                            navController.navigate("login") {
-                                popUpTo(0) { inclusive = true }
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = "Cerrar Sesión",
-                            tint = Color.White
-                        )
-                    }
-                }
+                title = { Text("Eco Drop", fontWeight = FontWeight.Bold) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = verdeEco, // 🚩 AQUÍ: La barra de arriba ahora es verde
+                    titleContentColor = Color.White // Texto en blanco para que resalte
+                )
             )
         },
         bottomBar = {
-            NavigationBar(containerColor = Color.White) {
+            NavigationBar(containerColor = colorSuperficie) {
                 items.forEachIndexed { index, item ->
                     NavigationBarItem(
                         icon = { Icon(icons[index], contentDescription = item) },
                         label = { Text(item) },
                         selected = selectedItem == index,
-                        onClick = { selectedItem = index },
+                        onClick = { onTabChange(index) },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = VerdePrenda,
-                            selectedTextColor = VerdePrenda,
-                            indicatorColor = VerdeFondo
+                            selectedIconColor = colorPrimario,
+                            selectedTextColor = colorPrimario,
+                            indicatorColor = colorPrimario.copy(alpha = 0.1f)
                         )
                     )
                 }
             }
         },
         floatingActionButton = {
-            // Solo mostramos el botón de añadir si estamos en la pestaña de "Mis Huertos"
             if (selectedItem == 0) {
                 FloatingActionButton(
                     onClick = { navController.navigate("crear_huerto") },
-                    containerColor = VerdePrenda,
+                    containerColor = colorPrimario,
                     contentColor = Color.White
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Añadir Huerto")
-                }
+                ) { Icon(Icons.Filled.Add, "Añadir") }
             }
         }
     ) { paddingValues ->
@@ -100,21 +114,17 @@ fun PantallaPrincipalUser(navController: NavHostController, viewModel: HuertosVi
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(VerdeFondo)
+                .background(Color.White)
         ) {
             when (selectedItem) {
-                0 -> {
-                    MisHuertosScreen(navController = navController, viewModel = viewModel)
-                }
-                1 -> {
-                    val huertosList = viewModel.huertos.value
-                    MapaHuertosScreen(huertos = huertosList)
-                }
-                2 -> {
-                    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                        Text("Configuración de Perfil en construcción...", fontSize = 18.sp, color = VerdePrenda)
-                    }
-                }
+                0 -> MisHuertosScreen(navController, viewModel)
+                1 -> MapaHuertosScreen(viewModel.huertos.value)
+                2 -> PerfilScreen(
+                    usuario = usuario,
+                    isDarkMode = isDarkMode,
+                    onDarkModeChange = onDarkModeChange,
+                    onLogout = onLogout
+                )
             }
         }
     }
