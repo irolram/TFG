@@ -23,7 +23,9 @@ import com.example.tfg.data.model.Usuario
 @Composable
 fun GestionUsuariosModScreen(
     listaUsuarios: List<Usuario>,
-    onPromocionar: (String) -> Unit
+    onPromocionar: (String) -> Unit,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
         // Cabecera más amigable

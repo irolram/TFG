@@ -1,8 +1,10 @@
 package com.example.tfg.ui.screen.admin
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -19,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.tfg.data.TokenManager
+import com.example.tfg.data.model.RolData
 import com.example.tfg.ui.screen.user.verdeEco
 import com.example.tfg.viewModel.UsuarioViewModel
 import com.google.firebase.auth.FirebaseAuth
@@ -32,50 +35,59 @@ val GrisFondo = Color(0xFFF8F9FA)
 @Composable
 fun PantallaPrincipalAdmin(
     navController: NavHostController,
-    viewModel: UsuarioViewModel
+    viewModel: UsuarioViewModel,
+    isDarkMode: Boolean,
+    onDarkModeChange: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var selectedItem by remember { mutableIntStateOf(0) }
 
-    // Observamos los datos del ViewModel
+    val miId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+    val usuarioLogueado by viewModel.usuarioLogueado.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val listaUsuarios by viewModel.listaUsuarios.collectAsState()
 
-    // Cargamos usuarios al iniciar o al volver a la pestaña de usuarios
     LaunchedEffect(selectedItem) {
-        if (selectedItem == 1) {
-            viewModel.listarUsuarios()
+        when (selectedItem) {
+            1 -> viewModel.listarUsuarios()
+            3 -> if (usuarioLogueado == null) viewModel.cargarPerfilActual(miId)
+        }
+    }
+
+    val performLogout = {
+        FirebaseAuth.getInstance().signOut()
+        scope.launch {
+            TokenManager(context).clearAuth()
+            navController.navigate("login") {
+                popUpTo(0) { inclusive = true }
+            }
         }
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Eco Drop - Panel Admin", fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = verdeEco,
-                    titleContentColor = Color.White,
-                    actionIconContentColor = Color.White
-                ),
-                actions = {
-                    IconButton(onClick = {
-                        FirebaseAuth.getInstance().signOut()
-                        scope.launch {
-                            TokenManager(context).clearAuth()
-                            navController.navigate("login") {
-                                popUpTo(0) { inclusive = true }
-                            }
+            // Solo mostramos la TopBar si NO estamos en el perfil (opcional, por estética)
+            if (selectedItem != 3) {
+                TopAppBar(
+                    title = { Text("Eco Drop - Panel Admin", fontWeight = FontWeight.Bold) },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = verdeEco,
+                        titleContentColor = Color.White,
+                        actionIconContentColor = Color.White
+                    ),
+                    actions = {
+                        IconButton(onClick = { performLogout() }) {
+                            Icon(Icons.AutoMirrored.Filled.ExitToApp, "Cerrar Sesión")
                         }
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, "Cerrar Sesión")
                     }
-                }
-            )
+                )
+            }
         },
         bottomBar = {
             NavigationBar(containerColor = Color.White) {
-                val items = listOf("Dashboard", "Usuarios", "Mapa", "Ajustes")
-                val icons = listOf(Icons.Filled.Dashboard, Icons.Filled.People, Icons.Filled.Map, Icons.Filled.Settings)
+                val items = listOf("Estadísticas", "Usuarios", "Mapa", "Perfil")
+                val icons = listOf(Icons.Filled.Dashboard, Icons.Filled.People, Icons.Filled.Map, Icons.Filled.Person)
 
                 items.forEachIndexed { index, item ->
                     NavigationBarItem(
@@ -99,61 +111,117 @@ fun PantallaPrincipalAdmin(
                 .padding(paddingValues)
                 .background(GrisFondo)
         ) {
-            val isRefreshing by viewModel.isRefreshing.collectAsState()
             when (selectedItem) {
-                0 -> DashboardAdminContent()
-                1 -> GestionUsuariosAdminScreen(listaUsuarios = listaUsuarios,
+                0 -> DashboardAdminContent(viewModel)
+                1 -> GestionUsuariosAdminScreen(
+                    listaUsuarios = listaUsuarios,
+                    miIdActual = miId, // Para que no se pueda borrar a sí mismo
                     isRefreshing = isRefreshing,
                     onRefresh = { viewModel.listarUsuarios() },
                     onCambiarRol = { id, nuevoRol -> viewModel.actualizarRol(id, nuevoRol) },
                     onEliminarUsuario = { id -> viewModel.eliminarUsuario(id) }
                 )
-                2 -> SeccionEnConstruccion("Mapa Global de Huertos")
-                3 -> SeccionEnConstruccion("Ajustes del Sistema")
+                2 -> MapaAdminScreen(viewModel)
+                3 -> PerfilAdminScreen(
+                    usuario = usuarioLogueado,
+                    isDarkMode = isDarkMode,
+                    onDarkModeChange = onDarkModeChange,
+                    onLogout = { performLogout() }
+                )
             }
         }
     }
 }
 
-// --- SUB-PANTALLA: DASHBOARD ---
 @Composable
-fun DashboardAdminContent() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Resumen del Sistema",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+fun DashboardAdminContent(viewModel: UsuarioViewModel) {
+    val stats by viewModel.stats.collectAsState()
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            EstadisticaCard("Usuarios", "1,234", Icons.Filled.People, Modifier.weight(1f))
-            EstadisticaCard("Huertos", "567", Icons.Filled.Eco, Modifier.weight(1f))
+    // Disparamos la carga al entrar en la pantalla
+    LaunchedEffect(Unit) {
+        viewModel.cargarEstadisticas()
+    }
+
+    if (stats == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = verdeEco)
         }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            item {
+                Text("Panel de Control", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
+            }
 
-        Spacer(modifier = Modifier.height(24.dp))
+            // KPIs con datos de la DB
+            item {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    EstadisticaCard("Usuarios", "${stats!!.totalUsuarios}", Icons.Default.People,Modifier.weight(1f),VerdeAdmin)
+                    EstadisticaCard("Huertos", "${stats!!.totalHuertos}", Icons.Default.Eco, Modifier.weight(1f),Color(0xFFEF6C00))
+                }
+            }
 
-        Text(
-            text = "Actividad Reciente",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+            // Gráfico de Barras con datos de la DB
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Distribución por Roles (Actualizado)", fontWeight = FontWeight.Bold)
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            items(5) { index ->
-                ActividadItem(
-                    descripcion = "Usuario ${100 + index} ha creado un nuevo huerto.",
-                    esAlerta = index == 2
-                )
+                        // Transformamos el Map del servidor en la lista para el gráfico
+                        val datosGrafico = stats!!.usuariosPorRol.map { (rol, cantidad) ->
+                            RolData(
+                                nombre = rol,
+                                cantidad = cantidad.toInt(),
+                                color = when (rol) {
+                                    "ADMIN" -> Color(0xFFD32F2F)
+                                    "MOD" -> Color(0xFF1976D2)
+                                    else -> VerdeAdmin
+                                }
+                            )
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+                        GraficoDistribucionRoles(datos = datosGrafico)
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun GraficoDistribucionRoles(datos: List<RolData>) {
+    val maxValor = datos.maxOf { it.cantidad }.toFloat()
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        datos.forEach { item ->
+            Column {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(item.nombre, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    Text("${item.cantidad}", fontSize = 12.sp, color = Color.Gray)
+                }
+                Spacer(Modifier.height(4.dp))
+                // Barra de progreso personalizada
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .background(Color(0xFFEEEEEE), CircleShape)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(if (maxValor > 0) item.cantidad / maxValor else 0f)
+                            .fillMaxHeight()
+                            .background(item.color, CircleShape)
+                    )
+                }
             }
         }
     }
@@ -162,7 +230,13 @@ fun DashboardAdminContent() {
 // --- COMPONENTES AUXILIARES ---
 
 @Composable
-fun EstadisticaCard(titulo: String, valor: String, icono: ImageVector, modifier: Modifier = Modifier) {
+fun EstadisticaCard(
+    titulo: String,
+    valor: String,
+    icono: ImageVector,
+    modifier: Modifier = Modifier,
+    VerdeAdmin1: Color
+) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),

@@ -55,6 +55,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        org.osmdroid.config.Configuration.getInstance().load(
+            applicationContext,
+            androidx.preference.PreferenceManager.getDefaultSharedPreferences(applicationContext)
+        )
         // --- GESTIÓN DE PERMISOS NOTIFICACIONES ---
         val requestPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
@@ -135,7 +139,9 @@ class MainActivity : ComponentActivity() {
                     composable("main_menuAdmin") {
                         PantallaPrincipalAdmin(
                             navController = navController,
-                            viewModel = usuariosViewModel
+                            viewModel = usuariosViewModel,
+                            isDarkMode = darkTheme,
+                            onDarkModeChange = { darkTheme = it }
                         )
                     }
 
@@ -143,7 +149,9 @@ class MainActivity : ComponentActivity() {
                     composable("main_menuMod") {
                         PantallaPrincipalMod(
                             navController = navController,
-                            viewModel = usuariosViewModel
+                            viewModel = usuariosViewModel,
+                            isDarkMode = darkTheme,
+                            onDarkModeChange = { darkTheme = it }
                         )
                     }
 

@@ -1,9 +1,13 @@
 package com.example.tfg.viewModel
 
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tfg.data.model.Rol
+import com.example.tfg.data.model.StatsDashboard
 import com.example.tfg.data.model.Usuario
 import com.example.tfg.data.network.IApiService
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,6 +79,56 @@ class UsuarioViewModel(private val apiService: IApiService) : ViewModel() {
                 Log.e("API_ERROR", "Error al eliminar: ${e.message}")
             } finally {
                 _isRefreshing.value = false
+            }
+        }
+    }
+    // En UsuarioViewModel.kt
+
+    private val _usuarioLogueado = MutableStateFlow<Usuario?>(null)
+    val usuarioLogueado: StateFlow<Usuario?> = _usuarioLogueado
+
+    // Y asegúrate de tener esta función para cargar los datos
+    fun cargarPerfilActual(userId: String) {
+        viewModelScope.launch {
+            try {
+                val response = apiService.obtenerUsuarioPorId(userId)
+                if (response.isSuccessful) {
+                    _usuarioLogueado.value = response.body()
+                }
+            } catch (e: Exception) {
+                println("Error al cargar perfil: ${e.message}")
+            }
+        }
+    }
+
+    private val _stats = MutableStateFlow<StatsDashboard?>(null)
+    val stats: StateFlow<StatsDashboard?> = _stats
+
+    fun cargarEstadisticas() {
+        viewModelScope.launch {
+            try {
+                val response = apiService.obtenerEstadisticas()
+                if (response.isSuccessful) {
+                    _stats.value = response.body()
+                }
+            } catch (e: Exception) {
+                Log.e("STATS_ERROR", "Error al conectar: ${e.message}")
+            }
+        }
+    }
+
+    var conteoProximidad by mutableLongStateOf(0L)
+        private set
+
+    fun cargarConteoProximidad(lat: Double, lng: Double, radio: Double) {
+        viewModelScope.launch {
+            try {
+                val response = apiService.obtenerConteoProximidad(lat, lng, radio)
+                if (response.isSuccessful) {
+                    conteoProximidad = response.body() ?: 0L
+                }
+            } catch (e: Exception) {
+                Log.e("MAPA_ERROR", "Error en Haversine: ${e.message}")
             }
         }
     }

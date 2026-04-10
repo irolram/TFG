@@ -144,10 +144,10 @@ fun LoginEcoDropScreen(navController: NavHostController) {
                                             tokenManager.saveToken(authData.accessToken, authData.userId)
 
                                             // 4. Decidimos la ruta según el Rol
-                                            val rutaDestino = if (authData.rol == "ADMIN") {
-                                                "main_menuAdmin"
-                                            } else {
-                                                "main_menuUser"
+                                            val rutaDestino = when(authData.rol){
+                                                "ADMIN" -> "main_menuAdmin"
+                                                "MOD" -> "main_menuMod"
+                                                else -> "main_menuUser"
                                             }
 
                                             // 5. Navegamos

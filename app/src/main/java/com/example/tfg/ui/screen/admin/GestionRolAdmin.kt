@@ -39,6 +39,7 @@ fun GestionUsuariosAdminScreen(
     onRefresh: () -> Unit,
     onCambiarRol: (String, Rol) -> Unit,
     onEliminarUsuario: (String) -> Unit,
+    miIdActual: String
 ) {
 
 

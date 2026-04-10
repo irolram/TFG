@@ -42,6 +42,8 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.runtime)
+    implementation(libs.androidx.preference.ktx)
     val work_version = "2.9.0"
     implementation("androidx.work:work-runtime-ktx:$work_version")
     // 1. Librerías base (Version Catalog)

@@ -32,8 +32,16 @@ class PlantaViewModel(private val apiService: IApiService) : ViewModel() {
             errorBusqueda.value = null
             try {
                 // Llamamos al endpoint de Spring Boot
-                val respuesta = apiService.buscarEnCatalogo(nombre.trim())
-                resultadosBusqueda.value = respuesta
+                val respuesta = apiService.buscarEnCatalogo(nombre)
+
+                if (respuesta.isSuccessful) {
+                    // Sacamos la lista del "sobre" con .body()
+                    // Si el cuerpo es nulo, le pasamos una lista vacía para que no pete
+                    resultadosBusqueda.value = respuesta.body() ?: emptyList()
+                } else {
+                    // Aquí puedes gestionar si el servidor falla (opcional)
+                    println("Error en la búsqueda: ${respuesta.code()}")
+                }
             } catch (e: Exception) {
                 errorBusqueda.value = "Error al conectar con el catálogo"
                 e.printStackTrace()
@@ -84,8 +92,14 @@ class PlantaViewModel(private val apiService: IApiService) : ViewModel() {
             try {
                 val respuesta = apiService.obtenerTodoElCatalogo()
                 withContext(Dispatchers.Main) {
-                    resultadosBusqueda.value = respuesta
-                }
+                    if (respuesta.isSuccessful) {
+                        // Sacamos la lista del "sobre" con .body()
+                        // Si el cuerpo es nulo, le pasamos una lista vacía para que no pete
+                        resultadosBusqueda.value = respuesta.body() ?: emptyList()
+                    } else {
+                        // Aquí puedes gestionar si el servidor falla (opcional)
+                        println("Error en la búsqueda: ${respuesta.code()}")
+                    }                }
             } catch (e: Exception) {
                 Log.e("API", "Error al cargar catálogo inicial: ${e.message}")
             } finally {
