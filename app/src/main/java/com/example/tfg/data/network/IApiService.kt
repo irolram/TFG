@@ -41,11 +41,12 @@ interface IApiService {
     suspend fun listarUsuarios(): Response<List<Usuario>>
 
     // SOLO ADMIN/MOD: Cambiar el rango de un usuario
-    @PUT("api/usuarios/{id}/rol")
-    suspend fun actualizarRol(
-        @Path("id") idObjetivo: String,
+        @PUT("/api/usuarios/{id}/rol")
+        suspend fun actualizarRol(
+        @Path("id") id: String,
         @Query("nuevoRol") nuevoRol: Rol
-    ): Response<String>
+        ): Response<Usuario>
+
 
     // SOLO ADMIN: Eliminar un usuario del sistema
     @DELETE("api/usuarios/{id}")

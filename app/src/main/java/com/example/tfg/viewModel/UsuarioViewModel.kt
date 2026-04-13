@@ -16,11 +16,30 @@ import kotlinx.coroutines.launch
 
 class UsuarioViewModel(private val apiService: IApiService) : ViewModel() {
 
+    // --- ESTADOS ---
     private val _listaUsuarios = MutableStateFlow<List<Usuario>>(emptyList())
     val listaUsuarios: StateFlow<List<Usuario>> = _listaUsuarios
+
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
-    // Función para cargar todos los usuarios (Solo la llamará el Admin/Mod)
+
+    private val _usuarioLogueado = MutableStateFlow<Usuario?>(null)
+    val usuarioLogueado: StateFlow<Usuario?> = _usuarioLogueado
+
+    private val _stats = MutableStateFlow<StatsDashboard?>(null)
+    val stats: StateFlow<StatsDashboard?> = _stats
+
+    var conteoProximidad by mutableLongStateOf(0L)
+        private set
+
+    // --- INICIALIZACIÓN ---
+    init {
+        listarUsuarios()
+    }
+
+    // --- FUNCIONES DE USUARIOS ---
+
+    // 1. Cargar todos los usuarios (Reemplaza a obtenerUsuarios y listarUsuarios)
     fun listarUsuarios() {
         viewModelScope.launch {
             _isRefreshing.value = true
@@ -30,64 +49,50 @@ class UsuarioViewModel(private val apiService: IApiService) : ViewModel() {
                     _listaUsuarios.value = response.body() ?: emptyList()
                 }
             } catch (e: Exception) {
-               println("error al cargar los usuarios ${e.message}")
-            }
-            finally {
-                _isRefreshing.value = false
-            }
-        }
-    }
-
-
-
-    fun cambiarRolEnServidor(id: String, rol: Rol) {
-        viewModelScope.launch {
-            val respuesta = apiService.actualizarRol(id, rol)
-
-            if (respuesta.isSuccessful) {
-
-                Log.d("API_SUCCESS", "Rol cambiado a $rol")
-                apiService.listarUsuarios()
-            } else {
-                Log.e("API_ERROR", "Error: ${respuesta.code()} - ${respuesta.errorBody()?.string()}")
-            }
-        }
-    }
-    fun actualizarRol(id: String, nuevoRol: Rol) {
-        viewModelScope.launch {
-            try {
-                val response = apiService.actualizarRol(id, nuevoRol)
-                if (response.isSuccessful) {
-                    listarUsuarios()
-                }
-            } catch (e: Exception) {
-                Log.e("API_ERROR", "Error al actualizar rol: ${e.message}")
-
-            }
-        }
-    }
-
-    fun eliminarUsuario(id: String) {
-        viewModelScope.launch {
-            _isRefreshing.value = true
-            try {
-                val response = apiService.eliminarUsuario(id)
-                if (response.isSuccessful) {
-                    listarUsuarios()
-                }
-            } catch (e: Exception) {
-                Log.e("API_ERROR", "Error al eliminar: ${e.message}")
+                Log.e("API_ERROR", "Error al cargar los usuarios: ${e.message}")
             } finally {
                 _isRefreshing.value = false
             }
         }
     }
-    // En UsuarioViewModel.kt
 
-    private val _usuarioLogueado = MutableStateFlow<Usuario?>(null)
-    val usuarioLogueado: StateFlow<Usuario?> = _usuarioLogueado
+    // 2. Actualizar Rol (Consolidado: Admin y Mod usan esta)
+    fun actualizarRol(id: String, nuevoRol: Rol) {
+        viewModelScope.launch {
+            try {
+                // Enviamos el .name para que el Backend reciba el String ("ADMIN", "MOD", etc)
+                val response = apiService.actualizarRol(id, nuevoRol)
+                if (response.isSuccessful) {
+                    Log.d("API_SUCCESS", "Rol cambiado a $nuevoRol")
+                    listarUsuarios() // Refrescamos la lista para ver el cambio
+                } else {
+                    Log.e("API_ERROR", "Error: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("API_ERROR", "Fallo de red al actualizar rol: ${e.message}")
+            }
+        }
+    }
 
-    // Y asegúrate de tener esta función para cargar los datos
+    // 3. Eliminar Usuario
+    fun eliminarUsuario(id: String) {
+        viewModelScope.launch {
+            try {
+                val response = apiService.eliminarUsuario(id)
+                if (response.isSuccessful) {
+                    // Quitamos al usuario de la lista local para que desaparezca al instante
+                    _listaUsuarios.value = _listaUsuarios.value.filter { it.id != id }
+                    Log.d("DELETE", "Usuario eliminado con éxito")
+                } else {
+                    Log.e("DELETE", "Error del servidor: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("DELETE", "Fallo de red: ${e.message}")
+            }
+        }
+    }
+
+    // 4. Cargar Perfil propio
     fun cargarPerfilActual(userId: String) {
         viewModelScope.launch {
             try {
@@ -96,13 +101,12 @@ class UsuarioViewModel(private val apiService: IApiService) : ViewModel() {
                     _usuarioLogueado.value = response.body()
                 }
             } catch (e: Exception) {
-                println("Error al cargar perfil: ${e.message}")
+                Log.e("PROFILE_ERROR", "Error al cargar perfil: ${e.message}")
             }
         }
     }
 
-    private val _stats = MutableStateFlow<StatsDashboard?>(null)
-    val stats: StateFlow<StatsDashboard?> = _stats
+    // --- OTRAS FUNCIONES (Stats y Mapa) ---
 
     fun cargarEstadisticas() {
         viewModelScope.launch {
@@ -117,10 +121,11 @@ class UsuarioViewModel(private val apiService: IApiService) : ViewModel() {
         }
     }
 
-    var conteoProximidad by mutableLongStateOf(0L)
-        private set
-
     fun cargarConteoProximidad(lat: Double, lng: Double, radio: Double) {
+        if (radio < 0.1) {
+            conteoProximidad = 0L
+            return
+        }
         viewModelScope.launch {
             try {
                 val response = apiService.obtenerConteoProximidad(lat, lng, radio)
@@ -128,9 +133,8 @@ class UsuarioViewModel(private val apiService: IApiService) : ViewModel() {
                     conteoProximidad = response.body() ?: 0L
                 }
             } catch (e: Exception) {
-                Log.e("MAPA_ERROR", "Error en Haversine: ${e.message}")
+                Log.e("MAPA_ERROR", "Error: ${e.message}")
             }
         }
     }
 }
-

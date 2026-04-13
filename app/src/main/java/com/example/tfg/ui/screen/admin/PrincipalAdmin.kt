@@ -76,11 +76,6 @@ fun PantallaPrincipalAdmin(
                         titleContentColor = Color.White,
                         actionIconContentColor = Color.White
                     ),
-                    actions = {
-                        IconButton(onClick = { performLogout() }) {
-                            Icon(Icons.AutoMirrored.Filled.ExitToApp, "Cerrar Sesión")
-                        }
-                    }
                 )
             }
         },
@@ -137,7 +132,6 @@ fun PantallaPrincipalAdmin(
 fun DashboardAdminContent(viewModel: UsuarioViewModel) {
     val stats by viewModel.stats.collectAsState()
 
-    // Disparamos la carga al entrar en la pantalla
     LaunchedEffect(Unit) {
         viewModel.cargarEstadisticas()
     }
@@ -155,7 +149,6 @@ fun DashboardAdminContent(viewModel: UsuarioViewModel) {
                 Text("Panel de Control", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
             }
 
-            // KPIs con datos de la DB
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     EstadisticaCard("Usuarios", "${stats!!.totalUsuarios}", Icons.Default.People,Modifier.weight(1f),VerdeAdmin)
@@ -163,7 +156,6 @@ fun DashboardAdminContent(viewModel: UsuarioViewModel) {
                 }
             }
 
-            // Gráfico de Barras con datos de la DB
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),

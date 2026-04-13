@@ -109,7 +109,7 @@ fun PantallaPrincipalMod(
                     listaUsuarios = listaUsuarios,
                     isRefreshing = isRefreshing,
                     onRefresh = { viewModel.listarUsuarios() },
-                    onPromocionar = { id -> viewModel.actualizarRol(id, Rol.MOD) }
+                    onPromocionarAMod = { id -> viewModel.actualizarRol(id, Rol.MOD) }
                 )
                 2 -> PerfilModScreen(
                     usuario = usuarioLogueado,

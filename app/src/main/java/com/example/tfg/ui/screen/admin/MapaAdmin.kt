@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -20,93 +21,116 @@ import org.osmdroid.views.overlay.Polygon
 @Composable
 fun MapaAdminScreen(viewModel: UsuarioViewModel) {
     val context = LocalContext.current
+    var puntoClickado by remember { mutableStateOf(GeoPoint(36.5297, -6.1465)) }
+    var radioKm by remember { mutableFloatStateOf(50f) }
 
-    // 1. Estados de posición (Empezamos en Puerto Real/Cádiz por defecto)
-    var puntoSeleccionado by remember { mutableStateOf(GeoPoint(36.5297, -6.1465)) }
-    var radioSeleccionado by remember { mutableFloatStateOf(50f) }
-
-    // 2. Cargamos datos cuando cambie el punto o el radio
-    LaunchedEffect(puntoSeleccionado, radioSeleccionado) {
+    LaunchedEffect(puntoClickado, radioKm) {
         viewModel.cargarConteoProximidad(
-            puntoSeleccionado.latitude,
-            puntoSeleccionado.longitude,
-            radioSeleccionado.toDouble()
+            puntoClickado.latitude,
+            puntoClickado.longitude,
+            radioKm.toDouble()
         )
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // --- PARTE SUPERIOR: EL MAPA (OSMDroid) ---
         AndroidView(
             modifier = Modifier.weight(1f),
             factory = { ctx ->
                 MapView(ctx).apply {
                     setMultiTouchControls(true)
-                    controller.setZoom(9.0)
-                    controller.setCenter(puntoSeleccionado)
-
-                    // 🚩 DETECTAR CLIC: Receptor de eventos
-                    val mReceive = object : MapEventsReceiver {
-                        override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
-                            puntoSeleccionado = p // Actualizamos el punto al clickar
-                            return true
-                        }
-                        override fun longPressHelper(p: GeoPoint): Boolean = false
-                    }
-                    overlays.add(MapEventsOverlay(mReceive))
+                    controller.setZoom(10.0)
+                    controller.setCenter(puntoClickado)
                 }
             },
             update = { mapView ->
-                mapView.overlays.removeIf { it is Marker || it is Polygon }
+                // 1. Limpiamos todas las capas para reordenar
+                mapView.overlays.clear()
 
-                // Dibujar el Marcador
-                val marker = Marker(mapView).apply {
-                    position = puntoSeleccionado
-                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                    title = "Punto de búsqueda"
-                }
-                mapView.overlays.add(marker)
-
-                // Dibujar el Círculo de Radio (Polygon)
-                val circle = Polygon().apply {
-                    points = Polygon.pointsAsCircle(puntoSeleccionado, radioSeleccionado.toDouble() * 1000.0)
-                    fillColor = android.graphics.Color.argb(50, 76, 175, 80) // VerdeEco transparente
+                // 2. Dibujamos el círculo del radio
+                val circulo = Polygon(mapView).apply {
+                    points = Polygon.pointsAsCircle(puntoClickado, radioKm.toDouble() * 1000.0)
+                    fillColor = android.graphics.Color.argb(45, 76, 175, 80)
                     strokeColor = android.graphics.Color.rgb(76, 175, 80)
-                    strokeWidth = 2f
+                    strokeWidth = 3f
+                    // 🚩 TRUCO: Desactivamos el clic en el círculo para que sea "transparente"
+                    setOnClickListener { _, _, _ -> false }
                 }
-                mapView.overlays.add(circle)
+                mapView.overlays.add(circulo)
 
-                mapView.invalidate() // Refrescar mapa
+                // 3. Añadimos el Marcador
+                val marcador = Marker(mapView).apply {
+                    position = puntoClickado
+                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                    title = "Centro"
+                }
+                mapView.overlays.add(marcador)
+
+                // 4. 🚩 CAPA SUPERIOR: El detector de clics debe ir el ÚLTIMO
+                // De esta forma, siempre recibe el toque primero, incluso dentro del círculo
+                val receptorEventos = object : MapEventsReceiver {
+                    override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
+                        puntoClickado = p
+                        return true
+                    }
+                    override fun longPressHelper(p: GeoPoint): Boolean = false
+                }
+                mapView.overlays.add(MapEventsOverlay(receptorEventos))
+
+                mapView.invalidate()
             }
         )
 
-        // --- PARTE INFERIOR: CONTROLES ---
+        // --- PANEL DE CONTROL DEL ADMIN ---
         Card(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            elevation = CardDefaults.cardElevation(8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            elevation = CardDefaults.cardElevation(10.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Análisis por Proximidad", style = MaterialTheme.typography.titleMedium)
-
                 Text(
-                    text = "${viewModel.conteoProximidad} huertos en esta zona",
-                    fontSize = 20.sp,
-                    color = Color(0xFF4CAF50), // VerdeEco
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    text = "Explorador de Proximidad",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                Text("Radio de búsqueda: ${radioSeleccionado.toInt()} km", fontSize = 12.sp)
+                // Resultado de la API
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Text(
+                        text = "${viewModel.conteoProximidad}",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF4CAF50)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Huertos en esta zona", color = Color.Gray)
+                }
+
+                Divider(modifier = Modifier.padding(vertical = 12.dp))
+
+                // Selector de Radio
+                Text(
+                    text = "Ajustar radio de acción: ${radioKm.toInt()} km",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
                 Slider(
-                    value = radioSeleccionado,
-                    onValueChange = { radioSeleccionado = it },
+                    value = radioKm,
+                    onValueChange = { radioKm = it },
                     valueRange = 5f..300f,
-                    colors = SliderDefaults.colors(thumbColor = Color(0xFF4CAF50), activeTrackColor = Color(0xFF4CAF50))
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(0xFF4CAF50),
+                        activeTrackColor = Color(0xFF4CAF50)
+                    )
                 )
 
                 Text(
-                    text = "Toca cualquier punto del mapa para mover el centro.",
-                    style = MaterialTheme.typography.bodySmall,
+                    text = "Toca el mapa para cambiar la ubicación de origen.",
+                    style = MaterialTheme.typography.labelSmall,
                     color = Color.Gray
                 )
             }

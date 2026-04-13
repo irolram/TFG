@@ -7,5 +7,6 @@ data class Usuario(
     val nombre: String,
     val apellidos: String,
     val email: String,
-    val rol: Rol
+    val rol: Rol,
+    val huertos: List<Huerto> = emptyList()
     )

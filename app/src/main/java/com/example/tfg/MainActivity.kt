@@ -59,7 +59,6 @@ class MainActivity : ComponentActivity() {
             applicationContext,
             androidx.preference.PreferenceManager.getDefaultSharedPreferences(applicationContext)
         )
-        // --- GESTIÓN DE PERMISOS NOTIFICACIONES ---
         val requestPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { isGranted: Boolean -> }
@@ -82,12 +81,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             var darkTheme by rememberSaveable { mutableStateOf(false) }
             var selectedTab by rememberSaveable { mutableIntStateOf(0) }
-
             val scope = rememberCoroutineScope()
             val auth = FirebaseAuth.getInstance()
             val currentUser = auth.currentUser
 
             TFGTheme(darkTheme = darkTheme) {
+
                 val navController = rememberNavController()
                 val context = LocalContext.current
                 val tokenManager = remember { TokenManager(context) }
@@ -107,6 +106,7 @@ class MainActivity : ComponentActivity() {
                 val plantasViewModel: PlantaViewModel = viewModel(factory = plantsFactory)
                 val huertosViewModel: HuertosViewModel = viewModel()
                 val usuariosViewModel: UsuarioViewModel = viewModel(factory = usersFactory)
+
 
                 NavHost(
                     navController = navController,
