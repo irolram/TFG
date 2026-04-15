@@ -129,23 +129,22 @@ class UsuarioViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun cargarConteoProximidad(lat: Double, lng: Double, radio: Double) {
-        if (radio < 0.1) {
-            conteoProximidad = 0L
-            return
-        }
         viewModelScope.launch {
             try {
+                // Log para ver qué llega de Railway
                 val response = apiService.obtenerConteoProximidad(lat, lng, radio)
+
                 if (response.isSuccessful) {
+
                     conteoProximidad = response.body() ?: 0L
+                    Log.d("API_MAPA", "Huertos encontrados: $conteoProximidad")
                 }
             } catch (e: Exception) {
-                Log.e("MAPA_ERROR", "Error: ${e.message}")
+                Log.e("API_MAPA", "Fallo: ${e.message}")
             }
         }
     }
 
-    // 🚩 LIMPIEZA DE SESIÓN (Fallo 2 corregido)
     fun limpiarSesion() {
         _usuarioLogueado.value = null
         _listaUsuarios.value = emptyList()
