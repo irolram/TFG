@@ -1,12 +1,15 @@
 package com.example.tfg.ui.screen.user
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.ChevronRight
 
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.SupportAgent
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 
 
 @Composable
@@ -22,8 +25,8 @@ fun PerfilScreen(
     usuario: com.example.tfg.data.model.Usuario?,
     isDarkMode: Boolean,
     onDarkModeChange: (Boolean) -> Unit,
-    onLogout: () -> Unit
-) {
+    onLogout: () -> Unit,
+    onNavigateToSupport: () -> Unit) {
     // Usamos el verde de tu marca EcoDrop
     val verdeEco = Color(0xFF4CAF50)
 
@@ -113,6 +116,18 @@ fun PerfilScreen(
                         Switch(checked = isDarkMode, onCheckedChange = onDarkModeChange)
                     }
                 )
+            }
+            Card(
+                modifier = Modifier.fillMaxWidth().clickable { onNavigateToSupport() },
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.SupportAgent, contentDescription = null, tint = verdeEco)
+                    Spacer(Modifier.width(16.dp))
+                    Text("Contactar con Soporte", fontWeight = FontWeight.Medium)
+                    Spacer(Modifier.weight(1f))
+                    Icon(Icons.Default.ChevronRight, null, tint = Color.Gray)
+                }
             }
 
             Spacer(modifier = Modifier.weight(1f))

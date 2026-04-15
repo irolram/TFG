@@ -1,45 +1,56 @@
 package com.example.tfg.viewModel
 
+import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tfg.data.model.Rol
 import com.example.tfg.data.model.StatsDashboard
 import com.example.tfg.data.model.Usuario
-import com.example.tfg.data.network.IApiService
+import com.example.tfg.data.network.RetrofitClient
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class UsuarioViewModel(private val apiService: IApiService) : ViewModel() {
+class UsuarioViewModel(application: Application) : AndroidViewModel(application) {
 
-    // --- ESTADOS ---
+    // --- 1. PROPIEDADES DE CONTEXTO Y API (PROFESIONAL) ---
+    private val context = application.applicationContext
+    // 🚩 Inicializamos el apiService aquí para que esté disponible en toda la clase
+    private val apiService = RetrofitClient.getApiService(context)
+
+    // --- 2. ESTADOS (Encapsulamiento profesional con asStateFlow) ---
     private val _listaUsuarios = MutableStateFlow<List<Usuario>>(emptyList())
-    val listaUsuarios: StateFlow<List<Usuario>> = _listaUsuarios
+    val listaUsuarios: StateFlow<List<Usuario>> = _listaUsuarios.asStateFlow()
 
     private val _isRefreshing = MutableStateFlow(false)
-    val isRefreshing: StateFlow<Boolean> = _isRefreshing
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     private val _usuarioLogueado = MutableStateFlow<Usuario?>(null)
-    val usuarioLogueado: StateFlow<Usuario?> = _usuarioLogueado
+    val usuarioLogueado: StateFlow<Usuario?> = _usuarioLogueado.asStateFlow()
 
     private val _stats = MutableStateFlow<StatsDashboard?>(null)
-    val stats: StateFlow<StatsDashboard?> = _stats
+    val stats: StateFlow<StatsDashboard?> = _stats.asStateFlow()
 
     var conteoProximidad by mutableLongStateOf(0L)
         private set
 
-    // --- INICIALIZACIÓN ---
+    // --- 3. INICIALIZACIÓN ---
     init {
-        listarUsuarios()
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid != null) {
+            cargarPerfilActual(uid)
+        }
+        // Solo listamos usuarios si somos Admin/Mod (se suele llamar desde la pantalla)
     }
 
-    // --- FUNCIONES DE USUARIOS ---
+    // --- 4. FUNCIONES DE USUARIOS ---
 
-    // 1. Cargar todos los usuarios (Reemplaza a obtenerUsuarios y listarUsuarios)
     fun listarUsuarios() {
         viewModelScope.launch {
             _isRefreshing.value = true
@@ -56,15 +67,13 @@ class UsuarioViewModel(private val apiService: IApiService) : ViewModel() {
         }
     }
 
-    // 2. Actualizar Rol (Consolidado: Admin y Mod usan esta)
     fun actualizarRol(id: String, nuevoRol: Rol) {
         viewModelScope.launch {
             try {
-                // Enviamos el .name para que el Backend reciba el String ("ADMIN", "MOD", etc)
                 val response = apiService.actualizarRol(id, nuevoRol)
                 if (response.isSuccessful) {
                     Log.d("API_SUCCESS", "Rol cambiado a $nuevoRol")
-                    listarUsuarios() // Refrescamos la lista para ver el cambio
+                    listarUsuarios() // Refrescamos la lista automáticamente
                 } else {
                     Log.e("API_ERROR", "Error: ${response.code()}")
                 }
@@ -74,17 +83,13 @@ class UsuarioViewModel(private val apiService: IApiService) : ViewModel() {
         }
     }
 
-    // 3. Eliminar Usuario
     fun eliminarUsuario(id: String) {
         viewModelScope.launch {
             try {
                 val response = apiService.eliminarUsuario(id)
                 if (response.isSuccessful) {
-                    // Quitamos al usuario de la lista local para que desaparezca al instante
                     _listaUsuarios.value = _listaUsuarios.value.filter { it.id != id }
                     Log.d("DELETE", "Usuario eliminado con éxito")
-                } else {
-                    Log.e("DELETE", "Error del servidor: ${response.code()}")
                 }
             } catch (e: Exception) {
                 Log.e("DELETE", "Fallo de red: ${e.message}")
@@ -92,21 +97,23 @@ class UsuarioViewModel(private val apiService: IApiService) : ViewModel() {
         }
     }
 
-    // 4. Cargar Perfil propio
-    fun cargarPerfilActual(userId: String) {
+    fun cargarPerfilActual(uid: String) {
         viewModelScope.launch {
             try {
-                val response = apiService.obtenerUsuarioPorId(userId)
+                // 🚩 YA NO creamos el apiService aquí, usamos el de la clase
+                val response = apiService.obtenerUsuarioPorId(uid)
+
                 if (response.isSuccessful) {
                     _usuarioLogueado.value = response.body()
+                    Log.d("API_SUCCESS", "Perfil de ${response.body()?.nombre} cargado")
                 }
             } catch (e: Exception) {
-                Log.e("PROFILE_ERROR", "Error al cargar perfil: ${e.message}")
+                Log.e("API_FAILURE", "Error de red: ${e.message}")
             }
         }
     }
 
-    // --- OTRAS FUNCIONES (Stats y Mapa) ---
+    // --- 5. ESTADÍSTICAS Y MAPA ---
 
     fun cargarEstadisticas() {
         viewModelScope.launch {
@@ -136,5 +143,13 @@ class UsuarioViewModel(private val apiService: IApiService) : ViewModel() {
                 Log.e("MAPA_ERROR", "Error: ${e.message}")
             }
         }
+    }
+
+    // 🚩 LIMPIEZA DE SESIÓN (Fallo 2 corregido)
+    fun limpiarSesion() {
+        _usuarioLogueado.value = null
+        _listaUsuarios.value = emptyList()
+        _stats.value = null
+        Log.d("AUTH", "Estado del ViewModel limpiado")
     }
 }

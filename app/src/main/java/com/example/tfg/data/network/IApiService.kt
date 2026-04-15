@@ -10,6 +10,7 @@ import com.example.tfg.data.model.CatalogoDePlantas
 import com.example.tfg.data.model.RespuestaBusquedaPlantas
 import com.example.tfg.data.model.Rol
 import com.example.tfg.data.model.StatsDashboard
+import com.example.tfg.data.model.Ticket
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -107,4 +108,19 @@ interface IApiService {
         @Query("lng") lng: Double,
         @Query("radio") radio: Double
     ): Response<Long>
+
+    // ==========================================
+    // GESTOR DE TICKETS
+    // ==========================================
+
+    @GET("api/tickets")
+    suspend fun listarTickets(): Response<List<Ticket>>
+
+    @PATCH("api/tickets/{id}/resolver")
+    suspend fun resolverTicket(@Path("id") id: String): Response<Ticket>
+
+    @POST("api/tickets")
+    suspend fun crearTicket(@Body ticket: Ticket): Response<Ticket>
+
+
 }

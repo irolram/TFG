@@ -9,6 +9,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -30,6 +32,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.tfg.data.TokenManager
 import com.example.tfg.data.model.LoginRequest
+import com.example.tfg.data.model.Rol
 import com.example.tfg.data.network.RetrofitClient
 import com.example.tfg.ui.components.RiegoWorker
 import com.example.tfg.ui.screen.LoginEcoDropScreen
@@ -40,11 +43,13 @@ import com.example.tfg.ui.screen.user.DetalleHuertoScreen
 import com.example.tfg.ui.screen.user.PantallaPrincipalUser
 import com.example.tfg.ui.screen.user.BuscarCultivoScreen
 import com.example.tfg.ui.screen.user.DetalleCultivoScreen
-import com.example.tfg.ui.screen.user.verdeEco
+import com.example.tfg.ui.screen.user.EnviarTicketScreen
 import com.example.tfg.ui.screens.RegisterScreen
 import com.example.tfg.ui.theme.TFGTheme
+import com.example.tfg.ui.theme.VerdeEco
 import com.example.tfg.viewModel.HuertosViewModel
 import com.example.tfg.viewModel.PlantaViewModel
+import com.example.tfg.viewModel.TicketViewModel
 import com.example.tfg.viewModel.UsuarioViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
@@ -55,10 +60,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // --- CONFIGURACIÓN MAPAS (OSMDROID) ---
         org.osmdroid.config.Configuration.getInstance().load(
             applicationContext,
             androidx.preference.PreferenceManager.getDefaultSharedPreferences(applicationContext)
         )
+
+        // --- PERMISOS DE NOTIFICACIONES ---
         val requestPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { isGranted: Boolean -> }
@@ -85,107 +93,125 @@ class MainActivity : ComponentActivity() {
             val auth = FirebaseAuth.getInstance()
             val currentUser = auth.currentUser
 
-            TFGTheme(darkTheme = darkTheme) {
+            // --- INICIALIZACIÓN DE SERVICIOS ---
+            val navController = rememberNavController()
+            val context = LocalContext.current
+            val tokenManager = remember { TokenManager(context) }
+            val apiService = remember { RetrofitClient.getApiService(context) }
 
-                val navController = rememberNavController()
-                val context = LocalContext.current
-                val tokenManager = remember { TokenManager(context) }
-                val apiService = remember { RetrofitClient.getApiService(context) }
+            // --- 🚩 FACTORIES PARA VIEWMODELS ---
+            val plantsFactory = object : ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T = PlantaViewModel(apiService) as T
+            }
+            val usersFactory = object : ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T = UsuarioViewModel(application) as T
+            }
+            val ticketsFactory = object : ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T = TicketViewModel(apiService) as T
+            }
 
-                // --- FACTORIES PARA VIEWMODELS CON PARÁMETROS ---
-                val plantsFactory = object : ViewModelProvider.Factory {
-                    override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                        PlantaViewModel(apiService) as T
-                }
+            val plantasViewModel: PlantaViewModel = viewModel(factory = plantsFactory)
+            val huertosViewModel: HuertosViewModel = viewModel()
+            val usuariosViewModel: UsuarioViewModel = viewModel(factory = usersFactory)
+            val ticketViewModel: TicketViewModel = viewModel(factory = ticketsFactory)
 
-                val usersFactory = object : ViewModelProvider.Factory {
-                    override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                        UsuarioViewModel(apiService) as T
-                }
+            // --- 🚩 ESTADO DEL USUARIO PARA EL TEMA ---
+            val usuarioActual by usuariosViewModel.usuarioLogueado.collectAsState()
 
-                val plantasViewModel: PlantaViewModel = viewModel(factory = plantsFactory)
-                val huertosViewModel: HuertosViewModel = viewModel()
-                val usuariosViewModel: UsuarioViewModel = viewModel(factory = usersFactory)
-
-
-                NavHost(
-                    navController = navController,
-                    startDestination = if (currentUser == null) "login" else "splash"
-                ) {
-                    // Pantalla de carga inicial
-                    composable("splash") {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = verdeEco)
+            // Corregimos el Mismatch pasando un valor por defecto (Rol.USER) si es nulo
+            TFGTheme(darkTheme = darkTheme, rol = usuarioActual?.rol ?: Rol.USER) {
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    NavHost(
+                        navController = navController,
+                        startDestination = if (currentUser == null) "login" else "splash"
+                    ) {
+                        composable("splash") {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = VerdeEco)
+                            }
                         }
-                    }
 
-                    composable("login") { LoginEcoDropScreen(navController) }
-                    composable("register") { RegisterScreen(navController) }
+                        composable("login") { LoginEcoDropScreen(navController) }
+                        composable("register") { RegisterScreen(navController) }
 
-                    // --- 1. RUTA USUARIO ESTÁNDAR ---
-                    composable("main_menuUser") {
-                        PantallaPrincipalUser(
-                            navController = navController,
-                            viewModel = huertosViewModel,
-                            isDarkMode = darkTheme,
-                            onDarkModeChange = { darkTheme = it },
-                            selectedItem = selectedTab,
-                            onTabChange = { selectedTab = it },
-                            onLogout = { cerrarSesionCompleta(auth, tokenManager, huertosViewModel, navController, scope) }
-                        )
-                    }
+                        // --- 1. RUTA USUARIO ---
+                        composable("main_menuUser") {
+                            PantallaPrincipalUser(
+                                navController = navController,
+                                viewModel = huertosViewModel,
+                                isDarkMode = darkTheme,
+                                onDarkModeChange = { darkTheme = it },
+                                selectedItem = selectedTab,
+                                onTabChange = { selectedTab = it },
+                                onLogout = {
+                                    cerrarSesionCompleta(auth, tokenManager, huertosViewModel, usuariosViewModel, navController, scope)
+                                }
+                            )
+                        }
 
-                    // --- 2. RUTA ADMINISTRADOR ---
-                    composable("main_menuAdmin") {
-                        PantallaPrincipalAdmin(
-                            navController = navController,
-                            viewModel = usuariosViewModel,
-                            isDarkMode = darkTheme,
-                            onDarkModeChange = { darkTheme = it }
-                        )
-                    }
+                        // --- 2. RUTA ADMINISTRADOR ---
+                        composable("main_menuAdmin") {
+                            PantallaPrincipalAdmin(
+                                navController = navController,
+                                viewModel = usuariosViewModel,
+                                isDarkMode = darkTheme,
+                                onDarkModeChange = { darkTheme = it }
+                            )
+                        }
 
-                    // --- 3. RUTA MODERADOR ---
-                    composable("main_menuMod") {
-                        PantallaPrincipalMod(
-                            navController = navController,
-                            viewModel = usuariosViewModel,
-                            isDarkMode = darkTheme,
-                            onDarkModeChange = { darkTheme = it }
-                        )
-                    }
+                        // --- 3. RUTA MODERADOR ---
+                        composable("main_menuMod") {
+                            PantallaPrincipalMod(
+                                navController = navController,
+                                usuarioViewModel = usuariosViewModel,
+                                ticketViewModel = ticketViewModel,
+                                huertosViewModel = huertosViewModel,
+                                isDarkMode = darkTheme,
+                                onDarkModeChange = { darkTheme = it }
+                            )
+                        }
 
-                    // --- OTRAS PANTALLAS (GESTIÓN HUERTOS) ---
-                    composable("crear_huerto") {
-                        CrearHuertoScreen(navController, huertosViewModel)
-                    }
+                        // --- GESTIÓN HUERTOS ---
+                        composable("crear_huerto") { CrearHuertoScreen(navController, huertosViewModel) }
 
-                    composable(
-                        route = "detalle_huerto/{huertoId}",
-                        arguments = listOf(navArgument("huertoId") { type = NavType.StringType })
-                    ) { backStackEntry ->
-                        val huertoId = backStackEntry.arguments?.getString("huertoId") ?: ""
-                        DetalleHuertoScreen(navController, huertosViewModel, tokenManager,huertoId)
-                    }
+                        composable(
+                            route = "detalle_huerto/{huertoId}",
+                            arguments = listOf(navArgument("huertoId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val huertoId = backStackEntry.arguments?.getString("huertoId") ?: ""
+                            DetalleHuertoScreen(navController, huertosViewModel, tokenManager, huertoId)
+                        }
 
-                    composable(
-                        route = "buscar_cultivo/{huertoId}",
-                        arguments = listOf(navArgument("huertoId") { type = NavType.StringType })
-                    ) { backStackEntry ->
-                        val huertoId = backStackEntry.arguments?.getString("huertoId") ?: ""
-                        BuscarCultivoScreen(
-                            huertoId = huertoId,
-                            viewModel = plantasViewModel,
-                            onCultivoGuardado = { navController.popBackStack() }
-                        )
-                    }
+                        composable(
+                            route = "buscar_cultivo/{huertoId}",
+                            arguments = listOf(navArgument("huertoId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val huertoId = backStackEntry.arguments?.getString("huertoId") ?: ""
+                            BuscarCultivoScreen(huertoId, plantasViewModel) { navController.popBackStack() }
+                        }
 
-                    composable(
-                        route = "detalle_planta/{cultivoId}",
-                        arguments = listOf(navArgument("cultivoId") { type = NavType.StringType })
-                    ) { backStackEntry ->
-                        val cultivoId = backStackEntry.arguments?.getString("cultivoId") ?: ""
-                        DetalleCultivoScreen(navController, huertosViewModel, cultivoId)
+                        composable(
+                            route = "detalle_planta/{cultivoId}",
+                            arguments = listOf(navArgument("cultivoId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val cultivoId = backStackEntry.arguments?.getString("cultivoId") ?: ""
+                            DetalleCultivoScreen(navController, huertosViewModel, cultivoId)
+                        }
+
+                        // --- SOPORTE ---
+                        composable("enviar_ticket") {
+                            val miId = auth.currentUser?.uid ?: ""
+                            LaunchedEffect(usuarioActual) {
+                                if (usuarioActual == null && miId.isNotEmpty()) {
+                                    usuariosViewModel.cargarPerfilActual(miId)
+                                }
+                            }
+                            EnviarTicketScreen(
+                                navController = navController,
+                                viewModel = ticketViewModel,
+                                usuario = usuarioActual
+                            )
+                        }
                     }
                 }
 
@@ -193,27 +219,19 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(currentUser) {
                     if (currentUser != null) {
                         try {
-                            val loginRequest = LoginRequest(
-                                userId = currentUser.uid,
-                                email = currentUser.email ?: "",
-                            )
-
+                            val loginRequest = LoginRequest(userId = currentUser.uid, email = currentUser.email ?: "")
                             val response = apiService.loginConServidor(loginRequest)
 
                             if (response.isSuccessful) {
                                 val authData = response.body()
                                 if (authData != null) {
                                     tokenManager.saveToken(authData.accessToken, authData.userId)
-
                                     val destino = when (authData.rol) {
                                         "ADMIN" -> "main_menuAdmin"
                                         "MOD" -> "main_menuMod"
                                         else -> "main_menuUser"
                                     }
-
-                                    navController.navigate(destino) {
-                                        popUpTo(0) { inclusive = true }
-                                    }
+                                    navController.navigate(destino) { popUpTo(0) { inclusive = true } }
                                 }
                             } else {
                                 logoutYLogin(auth, tokenManager, navController)
@@ -238,14 +256,16 @@ class MainActivity : ComponentActivity() {
     private fun cerrarSesionCompleta(
         auth: FirebaseAuth,
         tm: TokenManager,
-        vm: HuertosViewModel,
+        vmHuertos: HuertosViewModel,
+        vmUsuarios: UsuarioViewModel,
         nv: NavHostController,
         scope: kotlinx.coroutines.CoroutineScope
     ) {
         auth.signOut()
+        vmUsuarios.limpiarSesion()
         scope.launch {
             tm.clearAuth()
-            vm.limpiarDatos()
+            vmHuertos.limpiarDatos()
             nv.navigate("login") { popUpTo(0) { inclusive = true } }
         }
     }

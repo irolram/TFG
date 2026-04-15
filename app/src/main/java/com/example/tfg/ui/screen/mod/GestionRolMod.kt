@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tfg.data.model.Rol
 import com.example.tfg.data.model.Usuario
-import com.example.tfg.viewModel.UsuarioViewModel
 
 // Colores específicos para diferenciar del Admin
 val ColorMod = Color(0xFF00796B)
@@ -32,18 +31,19 @@ fun GestionUsuariosModScreen(
     onRefresh: () -> Unit,
     onPromocionarAMod: (String) -> Unit
 ) {
-    val candidatos = listaUsuarios
+    val candidatos = remember(listaUsuarios) {
+        listaUsuarios.filter { it.rol == Rol.USER }
+    }
 
-    // Estado para el diálogo de confirmación
     var showConfirmDialog by remember { mutableStateOf(false) }
     var usuarioSeleccionado by remember { mutableStateOf<Usuario?>(null) }
 
-    // 1️⃣ DIÁLOGO: CONFIRMAR ASCENSO
+    // Diálogo de confirmación
     if (showConfirmDialog && usuarioSeleccionado != null) {
         AlertDialog(
             onDismissRequest = { showConfirmDialog = false },
-            title = { Text("Promocionar a Moderador") },
-            text = { Text("¿Confirmas que quieres darle permisos de Moderador a ${usuarioSeleccionado!!.nombre}?") },
+            title = { Text("Ascender a Moderador") },
+            text = { Text("¿Quieres darle permisos de moderación a ${usuarioSeleccionado!!.nombre}?") },
             confirmButton = {
                 Button(
                     onClick = {
@@ -51,7 +51,7 @@ fun GestionUsuariosModScreen(
                         showConfirmDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = ColorMod)
-                ) { Text("Ascender") }
+                ) { Text("Confirmar") }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDialog = false }) { Text("Cancelar") }
@@ -59,14 +59,12 @@ fun GestionUsuariosModScreen(
         )
     }
 
-    // --- ESTRUCTURA IGUAL A LA DE ADMIN ---
     Column(modifier = Modifier.fillMaxSize().background(GrisFondoMod)) {
-
-        // Cabecera Estilo MOD
+        // Cabecera
         Box(modifier = Modifier.fillMaxWidth().background(ColorMod).padding(20.dp)) {
             Column {
                 Text("RECLUTAMIENTO", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
-                Text("Sube de rango a usuarios de confianza", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+                Text("Solo se muestran usuarios candidatos", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
             }
         }
 
@@ -77,7 +75,7 @@ fun GestionUsuariosModScreen(
         ) {
             if (candidatos.isEmpty() && !isRefreshing) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay candidatos disponibles", color = Color.Gray)
+                    Text("No hay usuarios pendientes de ascender", color = Color.Gray)
                 }
             } else {
                 LazyColumn(
@@ -98,25 +96,9 @@ fun GestionUsuariosModScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(text = usuario.nombre, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                     Text(text = usuario.email, color = Color.Gray, fontSize = 12.sp)
-
-                                    Spacer(Modifier.height(8.dp))
-
-                                    // Badge (Siempre será USER por el filtro)
-                                    Surface(
-                                        color = Color.Gray.copy(alpha = 0.1f),
-                                        shape = RoundedCornerShape(8.dp)
-                                    ) {
-                                        Text(
-                                            text = usuario.rol.name,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.Gray
-                                        )
-                                    }
                                 }
 
-                                // 🚩 ACCIÓN ÚNICA PARA EL MOD: ASCENDER
+                                // 🚩 CLAVE 2: El botón de acción
                                 Button(
                                     onClick = {
                                         usuarioSeleccionado = usuario

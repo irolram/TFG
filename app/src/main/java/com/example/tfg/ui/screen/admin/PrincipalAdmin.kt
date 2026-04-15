@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,7 +21,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.tfg.data.TokenManager
 import com.example.tfg.data.model.RolData
-import com.example.tfg.ui.screen.user.verdeEco
+import com.example.tfg.ui.theme.VerdeEco
 import com.example.tfg.viewModel.UsuarioViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
@@ -72,7 +71,7 @@ fun PantallaPrincipalAdmin(
                 TopAppBar(
                     title = { Text("Eco Drop - Panel Admin", fontWeight = FontWeight.Bold) },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = verdeEco,
+                        containerColor = VerdeEco,
                         titleContentColor = Color.White,
                         actionIconContentColor = Color.White
                     ),
@@ -138,7 +137,7 @@ fun DashboardAdminContent(viewModel: UsuarioViewModel) {
 
     if (stats == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = verdeEco)
+            CircularProgressIndicator(color = VerdeEco)
         }
     } else {
         LazyColumn(

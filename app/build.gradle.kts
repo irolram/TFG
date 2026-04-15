@@ -78,7 +78,7 @@ dependencies {
 
     // 5. UI Extra (Iconos extendidos para la papelera y el sol)
     implementation("androidx.compose.material:material-icons-extended:1.6.8")
-
+    implementation("androidx.compose.material:material-icons-extended")
     // 6. 📍 LIBRERÍA GPS (Sustituye a Google Maps)
     implementation("com.google.android.gms:play-services-location:21.2.0")
     implementation("org.osmdroid:osmdroid-android:6.1.18")

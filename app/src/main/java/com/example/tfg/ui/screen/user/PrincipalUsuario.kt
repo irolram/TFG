@@ -21,12 +21,12 @@ import androidx.datastore.preferences.protobuf.LazyStringArrayList.emptyList
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.tfg.data.TokenManager
+import com.example.tfg.ui.theme.VerdeEco
 import com.example.tfg.viewModel.HuertosViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlin.collections.emptyList
-val verdeEco = Color(0xFF4CAF50)
-val VerdeFondo = Color(0xFFE8F5E9)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaPrincipalUser(
@@ -48,7 +48,7 @@ fun PantallaPrincipalUser(
     val colorSuperficie = MaterialTheme.colorScheme.surface
 
     LaunchedEffect(Unit) {
-        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
         android.util.Log.d("DEBUG_PERFIL", "UID de Firebase: $uid")
 
         if (uid != null) {
@@ -73,13 +73,15 @@ fun PantallaPrincipalUser(
         }
     }
 
+
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Eco Drop", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = verdeEco, // 🚩 AQUÍ: La barra de arriba ahora es verde
-                    titleContentColor = Color.White // Texto en blanco para que resalte
+                    containerColor = VerdeEco,
+                    titleContentColor = Color.White
                 )
             )
         },
@@ -123,7 +125,10 @@ fun PantallaPrincipalUser(
                     usuario = usuario,
                     isDarkMode = isDarkMode,
                     onDarkModeChange = onDarkModeChange,
-                    onLogout = onLogout
+                    onLogout = onLogout,
+                    onNavigateToSupport = {
+                        navController.navigate("enviar_ticket")
+                    }
                 )
             }
         }
