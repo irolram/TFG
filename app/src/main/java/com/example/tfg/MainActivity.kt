@@ -194,7 +194,7 @@ class MainActivity : ComponentActivity() {
                             arguments = listOf(navArgument("huertoId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val huertoId = backStackEntry.arguments?.getString("huertoId") ?: ""
-                            BuscarCultivoScreen(huertoId, plantasViewModel) { navController.popBackStack() }
+                            BuscarCultivoScreen(huertoId, plantasViewModel, { navController.popBackStack() }) { navController.popBackStack() }
                         }
 
                         composable(

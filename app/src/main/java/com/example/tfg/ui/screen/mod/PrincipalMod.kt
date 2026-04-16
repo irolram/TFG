@@ -41,21 +41,19 @@ fun PantallaPrincipalMod(
     // --- OBSERVACIÓN DE ESTADOS ---
     val usuarioLogueado by usuarioViewModel.usuarioLogueado.collectAsState()
     val listaUsuarios by usuarioViewModel.listaUsuarios.collectAsState()
-    val listaHuertos = huertosViewModel.huertos.value
+    val listaHuertos = huertosViewModel.uiState.value.lista
 
     val listaTickets by ticketViewModel.listaTickets.collectAsState()
     val isRefreshingTickets by ticketViewModel.isRefreshing.collectAsState()
     val isRefreshingUsuarios by usuarioViewModel.isRefreshing.collectAsState()
 
-    // 🚩 LÓGICA DE CARGA INTELIGENTE (Basada en tu ViewModel)
-    LaunchedEffect(selectedItem) {
-        when (selectedItem) {
-            0, 1 -> if (listaHuertos.isEmpty()) huertosViewModel.obtenerTodosLosHuertos(apiService)
-            2 -> ticketViewModel.listarTickets() // Asumimos que este VM ya tiene el apiService inyectado
-            3 -> usuarioViewModel.listarUsuarios()
-            4 -> if (usuarioLogueado == null) usuarioViewModel.cargarPerfilActual(miId)
+    // 🚩 SOLUCIÓN: Carga inmediata al entrar
+    LaunchedEffect(Unit) {
+        if (usuarioLogueado == null && miId.isNotEmpty()) {
+            usuarioViewModel.cargarPerfilActual(miId)
         }
     }
+
 
     Scaffold(
         topBar = {

@@ -16,10 +16,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.tfg.data.model.RolData
 import com.example.tfg.viewModel.UsuarioViewModel
+import com.google.firebase.auth.FirebaseAuth
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,7 +29,7 @@ fun PantallaPrincipalAdmin(
     viewModel: UsuarioViewModel,
     isDarkMode: Boolean,
     onDarkModeChange: (Boolean) -> Unit,
-    onLogout: () -> Unit // 🚩 Pasamos el logout desde la MainActivity como en la UserScreen
+    onLogout: () -> Unit
 ) {
     var selectedItem by remember { mutableIntStateOf(0) }
 
@@ -36,10 +37,19 @@ fun PantallaPrincipalAdmin(
     val usuarioLogueado by viewModel.usuarioLogueado.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val listaUsuarios by viewModel.listaUsuarios.collectAsState()
-    val miIdActual = usuarioLogueado?.id ?: ""
 
-    // 🚩 OPTIMIZACIÓN 1: Carga de datos inteligente
-    // Solo cargamos si la lista está vacía para evitar peticiones innecesarias al cambiar de pestaña
+    // 🚩 OPTIMIZACIÓN 1: Obtener ID de Firebase de forma directa
+    val miIdActual = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
+
+    // 🚩 OPTIMIZACIÓN 2: Carga de arranque (Bootstrap)
+    // Este LaunchedEffect se ejecuta una sola vez al entrar el Admin
+    LaunchedEffect(Unit) {
+        if (usuarioLogueado == null && miIdActual.isNotEmpty()) {
+            viewModel.cargarPerfilActual(miIdActual)
+        }
+    }
+
+    // Carga de datos según la pestaña activa
     LaunchedEffect(selectedItem) {
         when (selectedItem) {
             0 -> viewModel.cargarEstadisticas()
@@ -49,17 +59,16 @@ fun PantallaPrincipalAdmin(
 
     Scaffold(
         topBar = {
-            // Unificamos la TopBar para que respete el tema
             TopAppBar(
                 title = {
                     Text(
                         text = when(selectedItem) {
-                            0 -> "Estadísticas Globales"
-                            1 -> "Gestión de Usuarios"
-                            2 -> "Radar de Proximidad"
+                            0 -> "Panel de Control"
+                            1 -> "Usuarios"
+                            2 -> "Mapa Admin"
                             else -> "Mi Perfil"
                         },
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.ExtraBold
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -91,7 +100,6 @@ fun PantallaPrincipalAdmin(
             }
         }
     ) { paddingValues ->
-        // 🚩 OPTIMIZACIÓN 2: Eliminamos Box innecesarios
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -110,7 +118,7 @@ fun PantallaPrincipalAdmin(
                 )
                 2 -> MapaAdminScreen(viewModel)
                 3 -> PerfilAdminScreen(
-                    usuario = usuarioLogueado,
+                    usuario = usuarioLogueado, // 🚩 Ahora llegará ya cargado
                     isDarkMode = isDarkMode,
                     onDarkModeChange = onDarkModeChange,
                     onLogout = onLogout

@@ -1,11 +1,13 @@
 package com.example.tfg.ui.screen.user
+
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,7 +22,6 @@ import coil.compose.AsyncImage
 import com.example.tfg.ui.components.FichaTecnicaSimple
 import com.example.tfg.viewModel.HuertosViewModel
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetalleCultivoScreen(
@@ -28,23 +29,33 @@ fun DetalleCultivoScreen(
     viewModel: HuertosViewModel,
     cultivoId: String
 ) {
-    // Variable para almacenar el cultivo actual
-    val miCultivo = viewModel.cultivosDelHuerto.value.find { it.id == cultivoId }
+    // 🚩 OPTIMIZACIÓN 1: Observamos la lista de cultivos del ViewModel
+    val cultivos by viewModel.cultivosDelHuerto
 
-    // Creamos una referencia corta a la info del catálogo
+    // Buscamos el cultivo específico de forma reactiva
+    val miCultivo = remember(cultivos, cultivoId) {
+        cultivos.find { it.id == cultivoId }
+    }
+
     val detalleEspecie = miCultivo?.infoCatalogo
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(miCultivo?.nombre?.replaceFirstChar { it.uppercase() } ?: "Detalle del Cultivo") },
+                title = {
+                    Text(
+                        text = miCultivo?.nombre?.replaceFirstChar { it.uppercase() } ?: "Detalle",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF4CAF50),
-                    titleContentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 }
             )
@@ -52,7 +63,11 @@ fun DetalleCultivoScreen(
     ) { padding ->
         if (miCultivo == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No se encontró el cultivo en tu huerto")
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.height(16.dp))
+                    Text("Cargando información del cultivo...", color = Color.Gray)
+                }
             }
         } else {
             Column(
@@ -63,29 +78,43 @@ fun DetalleCultivoScreen(
                     .padding(16.dp)
             ) {
                 // --- CABECERA ---
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    AsyncImage(
-                        model = detalleEspecie?.icono?.trim(),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(90.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFF1F8E9))
-                    )
-                    Spacer(Modifier.width(16.dp))
-                    Column {
-                        Text(miCultivo.nombre, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
-                        Surface(
-                            color = Color(0xFFE8F5E9),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        AsyncImage(
+                            model = detalleEspecie?.icono?.trim(),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(100.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                        )
+                        Spacer(Modifier.width(20.dp))
+                        Column {
                             Text(
-                                text = miCultivo.estado,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                color = Color(0xFF2E7D32),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
+                                text = miCultivo.nombre.replaceFirstChar { it.uppercase() },
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.ExtraBold
                             )
+                            Spacer(Modifier.height(8.dp))
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = "Estado: ${miCultivo.estado}",
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
@@ -93,8 +122,7 @@ fun DetalleCultivoScreen(
                 Spacer(Modifier.height(24.dp))
 
                 // --- FICHA TÉCNICA ---
-                Text(" Guía técnica de la especie", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Spacer(Modifier.height(8.dp))
+                SectionTitle(title = "Guía técnica de la especie")
 
                 if (detalleEspecie != null) {
                     FichaTecnicaSimple(planta = detalleEspecie)
@@ -102,29 +130,40 @@ fun DetalleCultivoScreen(
 
                 Spacer(Modifier.height(24.dp))
 
-                // --- INSTRUCCIONES PERSONALIZADAS ---
-                Text(" Consejos de cultivo", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Spacer(Modifier.height(8.dp))
+                // --- CONSEJOS ---
+                SectionTitle(title = "Consejos de cultivo")
 
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(2.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
-                    Column(Modifier.padding(16.dp)) {
+                    Column(Modifier.padding(20.dp)) {
                         Text(
                             text = detalleEspecie?.instrucciones
-                                ?: "Estamos preparando los mejores consejos para tu ${miCultivo.nombre}...",
-                            fontSize = 14.sp,
-                            lineHeight = 22.sp,
-                            color = Color.DarkGray
+                                ?: "Estamos preparando los mejores consejos personalizados para tu ${miCultivo.nombre}...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            lineHeight = 24.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
+
+                Spacer(Modifier.height(32.dp))
             }
         }
     }
 }
 
-
+@Composable
+fun SectionTitle(title: String) {
+    Text(
+        text = " $title",
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(bottom = 8.dp)
+    )
+}

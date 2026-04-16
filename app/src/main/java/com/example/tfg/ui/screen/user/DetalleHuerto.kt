@@ -8,8 +8,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -42,39 +42,51 @@ fun DetalleHuertoScreen(
     val context = LocalContext.current
     val apiService = remember { RetrofitClient.getApiService(context) }
 
-    // Observamos el token del DataStore
+    // 🚩 OPTIMIZACIÓN 1: Acceso al nuevo UI State
+    val state by viewModel.uiState
     val token by tokenManager.accessToken.collectAsState(initial = null)
-
-    // Observamos los datos del ViewModel
     val cultivos by viewModel.cultivosDelHuerto
-    val cargando by viewModel.cargandoCultivos
+    val cargandoCultivos by viewModel.cargandoCultivos
 
-    // Buscamos el huerto actual en la lista para obtener latitud/longitud
-    val huertoActual = viewModel.huertos.value.find { it.id == huertoId }
+    // 🚩 CLAVE: Buscamos el huerto específico en la lista del estado
+    val huertoActual = remember(state.lista, huertoId) {
+        state.lista.find { it.id == huertoId }
+    }
 
-    // Disparamos la carga de cultivos al entrar
     LaunchedEffect(huertoId) {
+        // Si por algún motivo la lista de huertos está vacía (ej. recarga), los pedimos
+        if (state.lista.isEmpty()) {
+            viewModel.obtenerTodosLosHuertos(apiService)
+        }
         viewModel.cargarCultivosDeUnHuerto(apiService, huertoId)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(huertoActual?.nombre ?: "Detalle del Huerto", color = Color.White) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF4CAF50)),
+                title = {
+                    Text(
+                        text = huertoActual?.nombre ?: "Cargando...",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Volver", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
         },
         floatingActionButton = {
-            // Botón para añadir cultivo al huerto
             FloatingActionButton(
                 onClick = { navController.navigate("buscar_cultivo/$huertoId") },
-                containerColor = Color(0xFF4CAF50),
-                contentColor = Color.White
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(Icons.Default.Add, "Añadir Planta")
             }
@@ -88,17 +100,19 @@ fun DetalleHuertoScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Se muestra el clima del huerto
+            // --- SECCIÓN CLIMA ---
             if (huertoActual != null) {
                 WidgetClima(
                     latitud = huertoActual.latitud,
                     longitud = huertoActual.longitud
                 )
             } else {
-                // Estado de carga del clima
+                // Shimmer o carga simple
                 Card(
-                    modifier = Modifier.fillMaxWidth().height(100.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+                    modifier = Modifier.fillMaxWidth().height(110.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    )
                 ) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp))
@@ -108,27 +122,27 @@ fun DetalleHuertoScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Lista de cultivos
+            // --- LISTA DE CULTIVOS ---
             Text(
                 text = "Tus cultivos",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFF2E7D32)
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.primary
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            if (cargando) {
+            if (cargandoCultivos) {
                 Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Color(0xFF4CAF50))
+                    CircularProgressIndicator()
                 }
             } else if (cultivos.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
                     Text(
-                        text = "Aún no tienes nada plantado aquí.\n¡Pulsa el botón + para empezar!",
+                        text = "Este huerto está vacío.\n¡Añade tu primera planta!",
                         textAlign = TextAlign.Center,
-                        color = Color.Gray,
-                        lineHeight = 20.sp
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
                     )
                 }
             } else {
@@ -137,71 +151,77 @@ fun DetalleHuertoScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(bottom = 32.dp)
                 ) {
-                    items(cultivos) { cultivo ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    navController.navigate("detalle_planta/${cultivo.id}")
-                                },
-                            shape = RoundedCornerShape(16.dp),
-                            elevation = CardDefaults.cardElevation(2.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-
-                                AsyncImage(
-                                    model = cultivo.infoCatalogo?.icono?.trim(),
-                                    contentDescription = null,
-                                    error = rememberVectorPainter(Icons.Default.Warning),
-                                    modifier = Modifier
-                                        .size(60.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFFF1F8E9)),
-                                    contentScale = ContentScale.Crop
-                                )
-
-                                Spacer(modifier = Modifier.width(16.dp))
-
-                                // Info de la cultivo
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = cultivo.nombre.replaceFirstChar { it.uppercase() },
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 17.sp,
-                                        color = Color(0xFF1B5E20)
-                                    )
-                                    Text(
-                                        text = "Estado: ${cultivo.estado}",
-                                        color = Color.Gray,
-                                        fontSize = 13.sp
+                    items(cultivos, key = { it.id ?: "" }) { cultivo ->
+                        ItemCultivo(
+                            cultivo = cultivo,
+                            onDelete = {
+                                cultivo.id?.let { idSeguro ->
+                                    viewModel.eliminarCultivoDelHuerto(
+                                        apiService = apiService,
+                                        huertoId = huertoId,
+                                        cultivoId = idSeguro,
+                                        token = token ?: ""
                                     )
                                 }
-
-                                // Botón de Borrar
-                                IconButton(onClick = {
-                                    cultivo.id?.let { idSeguro ->
-                                        viewModel.eliminarCultivoDelHuerto(
-                                            apiService = apiService,
-                                            huertoId = huertoId,
-                                            cultivoId = idSeguro,
-                                            token = token ?: ""
-                                        )
-                                    }
-                                }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = "Eliminar",
-                                        tint = Color(0xFFE57373)
-                                    )
-                                }
-                            }
-                        }
+                            },
+                            onClick = { navController.navigate("detalle_planta/${cultivo.id}") }
+                        )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ItemCultivo(
+    cultivo: com.example.tfg.data.model.Cultivo,
+    onDelete: () -> Unit,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = cultivo.infoCatalogo?.icono?.trim(),
+                contentDescription = null,
+                error = rememberVectorPainter(Icons.Default.Warning),
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentScale = ContentScale.Crop
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = cultivo.nombre.replaceFirstChar { it.uppercase() },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Estado: ${cultivo.estado}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Eliminar",
+                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                )
             }
         }
     }
