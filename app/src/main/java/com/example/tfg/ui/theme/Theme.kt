@@ -1,101 +1,85 @@
 package com.example.tfg.ui.theme
 
-import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import com.example.tfg.data.model.Rol
 
-// ui/theme/Color.kt
-val VerdeEco = Color(0xFF4CAF50)
-val VerdeEcoLight = Color(0xFFE8F5E9)
-val TealMod = Color(0xFF00796B)
-val TealModLight = Color(0xFFB2DFDB)
-val GrisAdmin = Color(0xFF263238)
-val VerdeAdminAccento = Color(0xFF81C784)
+// --- 1. DEFINICIÓN DE COLORES POR RANGO ---
 
-// Colores de estado (Comunes)
-val TicketError = Color(0xFFD32F2F)
-val TicketSugerencia = Color(0xFF388E3C)
-val TicketOtro = Color(0xFFF9A825)
+// USER: Verde Naturaleza (Fresco y accesible)
+private val UserPrimary = Color(0xFF4CAF50)
+private val UserContainer = Color(0xFFC8E6C9)
 
-// ui/theme/Theme.kt
+// MODERADOR: Verde Teal (Profesional y equilibrado)
+private val ModPrimary = Color(0xFF00796B)
+private val ModContainer = Color(0xFFB2DFDB)
 
-@Composable
-fun EcoDropTheme(
-    rol: Rol?, // Pasamos el rol que tenemos en el ViewModel
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit
-) {
-    val colorScheme = when (rol) {
-        Rol.ADMIN -> darkColorScheme(
-            primary = VerdeAdminAccento,
-            surface = GrisAdmin,
-            background = Color(0xFF121212)
-        )
-        Rol.MOD -> lightColorScheme(
-            primary = TealMod,
-            secondary = TealModLight,
-            surface = Color.White
-        )
-        else -> lightColorScheme( // Por defecto el de USER
-            primary = VerdeEco,
-            secondary = VerdeEcoLight,
-            background = Color(0xFFF4F7F6),
-            surface = Color.White
-        )
-    }
+// ADMIN: Verde Bosque (Autoridad y profundidad)
+private val AdminPrimary = Color(0xFF1B5E20)
+private val AdminContainer = Color(0xFFA5D6A7)
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
-}
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
-)
+// --- 2. GENERADOR DE SCHEMES ---
 
 @Composable
 fun TFGTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
     rol: Rol?,
-    dynamicColor: Boolean = true,
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    val rangoActual = rol ?: Rol.USER
+
+    val colorScheme = when (rangoActual) {
+        Rol.ADMIN -> if (darkTheme) {
+            darkColorScheme(
+                primary = Color(0xFF81C784),
+                onPrimary = Color.Black,
+                primaryContainer = AdminPrimary,
+                background = Color(0xFF121212),
+                surface = Color(0xFF1E1E1E)
+            )
+        } else {
+            lightColorScheme(
+                primary = AdminPrimary,
+                onPrimary = Color.White,
+                primaryContainer = AdminContainer,
+                background = Color(0xFFF8F9FA)
+            )
         }
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        Rol.MOD -> if (darkTheme) {
+            darkColorScheme(
+                primary = Color(0xFF4DB6AC),
+                onPrimary = Color.Black,
+                primaryContainer = ModPrimary,
+                background = Color(0xFF121212)
+            )
+        } else {
+            lightColorScheme(
+                primary = ModPrimary,
+                onPrimary = Color.White,
+                primaryContainer = ModContainer,
+                background = Color(0xFFF0F4F4)
+            )
+        }
+
+        Rol.USER -> if (darkTheme) {
+            darkColorScheme(
+                primary = UserPrimary,
+                onPrimary = Color.Black,
+                primaryContainer = Color(0xFF2E7D32),
+                background = Color(0xFF121212)
+            )
+        } else {
+            lightColorScheme(
+                primary = UserPrimary,
+                onPrimary = Color.White,
+                primaryContainer = UserContainer,
+                background = Color(0xFFF4F7F6),
+                surface = Color.White
+            )
+        }
     }
 
     MaterialTheme(

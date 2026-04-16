@@ -15,73 +15,42 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.datastore.preferences.protobuf.LazyStringArrayList.emptyList
-import androidx.lifecycle.viewmodel.compose.viewModel
+
 import androidx.navigation.NavHostController
-import com.example.tfg.data.TokenManager
-import com.example.tfg.ui.theme.VerdeEco
 import com.example.tfg.viewModel.HuertosViewModel
-import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.launch
-import kotlin.collections.emptyList
+import com.example.tfg.viewModel.UsuarioViewModel
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaPrincipalUser(
     navController: NavHostController,
-    viewModel: HuertosViewModel,
+    huertosViewModel: HuertosViewModel,
+    usuariosViewModel: UsuarioViewModel,
     isDarkMode: Boolean,
     onDarkModeChange: (Boolean) -> Unit,
     selectedItem: Int,
     onTabChange: (Int) -> Unit,
     onLogout: () -> Unit
 ) {
-    var usuario by remember { mutableStateOf<com.example.tfg.data.model.Usuario?>(null) }
+    // 🚩 Observamos el usuario directamente del ViewModel, sin re-peticiones a la API
+    val usuario by usuariosViewModel.usuarioLogueado.collectAsState()
+
     val items = listOf("Mis Huertos", "Mapa", "Perfil")
     val icons = listOf(Icons.Filled.Eco, Icons.Filled.Map, Icons.Filled.Person)
 
-    val context = LocalContext.current
+    // Usamos el esquema de colores del tema
     val colorPrimario = MaterialTheme.colorScheme.primary
-    val colorFondoSitio = MaterialTheme.colorScheme.background
+    val colorOnPrimario = MaterialTheme.colorScheme.onPrimary
     val colorSuperficie = MaterialTheme.colorScheme.surface
-
-    LaunchedEffect(Unit) {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid
-        android.util.Log.d("DEBUG_PERFIL", "UID de Firebase: $uid")
-
-        if (uid != null) {
-            try {
-                val apiService = com.example.tfg.data.network.RetrofitClient.getApiService(context)
-                val response = apiService.obtenerUsuarioPorId(uid)
-
-                if (response.isSuccessful) {
-                    usuario = response.body()
-                    android.util.Log.d("DEBUG_PERFIL", "Usuario cargado: ${usuario?.nombre}")
-                } else {
-                    android.util.Log.e(
-                        "DEBUG_PERFIL",
-                        "Error API: ${response.code()} - ${response.errorBody()?.string()}"
-                    )
-                }
-            } catch (e: Exception) {
-                android.util.Log.e("DEBUG_PERFIL", "Error de conexión: ${e.message}")
-            }
-        } else {
-            android.util.Log.e("DEBUG_PERFIL", "El UID de Firebase es NULL")
-        }
-    }
-
-
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Eco Drop", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VerdeEco,
-                    titleContentColor = Color.White
+                    containerColor = colorPrimario, // 🚩 Ahora es dinámico (Admin/User/Mod)
+                    titleContentColor = colorOnPrimario
                 )
             )
         },
@@ -103,32 +72,31 @@ fun PantallaPrincipalUser(
             }
         },
         floatingActionButton = {
+            // Solo mostramos el botón de añadir si estamos en "Mis Huertos"
             if (selectedItem == 0) {
                 FloatingActionButton(
                     onClick = { navController.navigate("crear_huerto") },
                     containerColor = colorPrimario,
-                    contentColor = Color.White
+                    contentColor = colorOnPrimario
                 ) { Icon(Icons.Filled.Add, "Añadir") }
             }
         }
     ) { paddingValues ->
-        Column(
+
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color.White)
         ) {
             when (selectedItem) {
-                0 -> MisHuertosScreen(navController, viewModel)
-                1 -> MapaHuertosScreen(viewModel.huertos.value)
+                0 -> MisHuertosScreen(navController, huertosViewModel)
+                1 -> MapaHuertosScreen(huertosViewModel.huertos.value)
                 2 -> PerfilScreen(
                     usuario = usuario,
                     isDarkMode = isDarkMode,
                     onDarkModeChange = onDarkModeChange,
                     onLogout = onLogout,
-                    onNavigateToSupport = {
-                        navController.navigate("enviar_ticket")
-                    }
+                    onNavigateToSupport = { navController.navigate("enviar_ticket") }
                 )
             }
         }

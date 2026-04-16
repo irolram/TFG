@@ -15,13 +15,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.tfg.data.model.Rol
 import com.example.tfg.data.model.Usuario
 
-// Colores específicos para diferenciar del Admin
-val ColorMod = Color(0xFF00796B)
-val GrisFondoMod = Color(0xFFF4F7F6)
+// 🚩 OPTIMIZACIÓN 1: Estado sellado para acciones de moderación
+sealed class ModAction {
+    data object None : ModAction()
+    data class ConfirmPromote(val usuario: Usuario) : ModAction()
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,94 +32,100 @@ fun GestionUsuariosModScreen(
     onRefresh: () -> Unit,
     onPromocionarAMod: (String) -> Unit
 ) {
+    // Estado de acción único
+    var accionPendiente by remember { mutableStateOf<ModAction>(ModAction.None) }
+
+    // Filtrado eficiente de candidatos (Solo USERs)
     val candidatos = remember(listaUsuarios) {
         listaUsuarios.filter { it.rol == Rol.USER }
     }
 
-    var showConfirmDialog by remember { mutableStateOf(false) }
-    var usuarioSeleccionado by remember { mutableStateOf<Usuario?>(null) }
-
-    // Diálogo de confirmación
-    if (showConfirmDialog && usuarioSeleccionado != null) {
+    // 🚩 OPTIMIZACIÓN 2: Diálogo centralizado
+    if (accionPendiente is ModAction.ConfirmPromote) {
+        val usuario = (accionPendiente as ModAction.ConfirmPromote).usuario
         AlertDialog(
-            onDismissRequest = { showConfirmDialog = false },
-            title = { Text("Ascender a Moderador") },
-            text = { Text("¿Quieres darle permisos de moderación a ${usuarioSeleccionado!!.nombre}?") },
+            onDismissRequest = { accionPendiente = ModAction.None },
+            title = { Text("Ascenso de Rango") },
+            text = { Text("¿Deseas otorgar permisos de moderación a ${usuario.nombre}?") },
             confirmButton = {
                 Button(
                     onClick = {
-                        onPromocionarAMod(usuarioSeleccionado!!.id)
-                        showConfirmDialog = false
+                        onPromocionarAMod(usuario.id)
+                        accionPendiente = ModAction.None
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ColorMod)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) { Text("Confirmar") }
             },
             dismissButton = {
-                TextButton(onClick = { showConfirmDialog = false }) { Text("Cancelar") }
+                TextButton(onClick = { accionPendiente = ModAction.None }) { Text("Cancelar") }
             }
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(GrisFondoMod)) {
-        // Cabecera
-        Box(modifier = Modifier.fillMaxWidth().background(ColorMod).padding(20.dp)) {
-            Column {
-                Text("RECLUTAMIENTO", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
-                Text("Solo se muestran usuarios candidatos", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+    Scaffold(
+        topBar = {
+            // Cabecera que usa el color Teal del tema de Moderador automáticamente
+            Surface(color = MaterialTheme.colorScheme.primary, shadowElevation = 4.dp) {
+                Column(modifier = Modifier.fillMaxWidth().padding(20.dp).statusBarsPadding()) {
+                    Text("RECLUTAMIENTO", style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.ExtraBold)
+                    Text("Usuarios candidatos a moderación", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.7f))
+                }
             }
         }
-
+    ) { paddingValues ->
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = onRefresh,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.padding(paddingValues).fillMaxSize()
         ) {
             if (candidatos.isEmpty() && !isRefreshing) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay usuarios pendientes de ascender", color = Color.Gray)
+                    Text("No hay candidatos disponibles", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(candidatos) { usuario ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            elevation = CardDefaults.cardElevation(2.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = usuario.nombre, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                    Text(text = usuario.email, color = Color.Gray, fontSize = 12.sp)
-                                }
-
-                                // 🚩 CLAVE 2: El botón de acción
-                                Button(
-                                    onClick = {
-                                        usuarioSeleccionado = usuario
-                                        showConfirmDialog = true
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = ColorMod),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Shield,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text("HACER MOD", fontSize = 11.sp)
-                                }
-                            }
-                        }
+                    // 🚩 OPTIMIZACIÓN 3: Claves únicas para mejor rendimiento en listas
+                    items(candidatos, key = { it.id }) { usuario ->
+                        CandidatoItem(
+                            usuario = usuario,
+                            onPromoteClick = { accionPendiente = ModAction.ConfirmPromote(usuario) }
+                        )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun CandidatoItem(usuario: Usuario, onPromoteClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(usuario.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                Text(usuario.email, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+            }
+
+            Button(
+                onClick = onPromoteClick,
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Icon(Icons.Default.Shield, null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("HACER MOD", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
             }
         }
     }

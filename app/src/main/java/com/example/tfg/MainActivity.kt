@@ -46,7 +46,6 @@ import com.example.tfg.ui.screen.user.DetalleCultivoScreen
 import com.example.tfg.ui.screen.user.EnviarTicketScreen
 import com.example.tfg.ui.screens.RegisterScreen
 import com.example.tfg.ui.theme.TFGTheme
-import com.example.tfg.ui.theme.VerdeEco
 import com.example.tfg.viewModel.HuertosViewModel
 import com.example.tfg.viewModel.PlantaViewModel
 import com.example.tfg.viewModel.TicketViewModel
@@ -99,7 +98,7 @@ class MainActivity : ComponentActivity() {
             val tokenManager = remember { TokenManager(context) }
             val apiService = remember { RetrofitClient.getApiService(context) }
 
-            // --- 🚩 FACTORIES PARA VIEWMODELS ---
+            // --- FACTORIES PARA VIEWMODELS ---
             val plantsFactory = object : ViewModelProvider.Factory {
                 override fun <T : ViewModel> create(modelClass: Class<T>): T = PlantaViewModel(apiService) as T
             }
@@ -115,10 +114,8 @@ class MainActivity : ComponentActivity() {
             val usuariosViewModel: UsuarioViewModel = viewModel(factory = usersFactory)
             val ticketViewModel: TicketViewModel = viewModel(factory = ticketsFactory)
 
-            // --- 🚩 ESTADO DEL USUARIO PARA EL TEMA ---
             val usuarioActual by usuariosViewModel.usuarioLogueado.collectAsState()
 
-            // Corregimos el Mismatch pasando un valor por defecto (Rol.USER) si es nulo
             TFGTheme(darkTheme = darkTheme, rol = usuarioActual?.rol ?: Rol.USER) {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     NavHost(
@@ -127,18 +124,18 @@ class MainActivity : ComponentActivity() {
                     ) {
                         composable("splash") {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(color = VerdeEco)
+                                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                             }
                         }
 
                         composable("login") { LoginEcoDropScreen(navController) }
                         composable("register") { RegisterScreen(navController) }
 
-                        // --- 1. RUTA USUARIO ---
                         composable("main_menuUser") {
                             PantallaPrincipalUser(
                                 navController = navController,
-                                viewModel = huertosViewModel,
+                                huertosViewModel = huertosViewModel,
+                                usuariosViewModel = usuariosViewModel,
                                 isDarkMode = darkTheme,
                                 onDarkModeChange = { darkTheme = it },
                                 selectedItem = selectedTab,
@@ -149,17 +146,18 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // --- 2. RUTA ADMINISTRADOR ---
                         composable("main_menuAdmin") {
                             PantallaPrincipalAdmin(
                                 navController = navController,
                                 viewModel = usuariosViewModel,
                                 isDarkMode = darkTheme,
-                                onDarkModeChange = { darkTheme = it }
+                                onDarkModeChange = { darkTheme = it },
+                                onLogout = {
+                                    cerrarSesionCompleta(auth, tokenManager, huertosViewModel, usuariosViewModel, navController, scope)
+                                }
                             )
                         }
 
-                        // --- 3. RUTA MODERADOR ---
                         composable("main_menuMod") {
                             PantallaPrincipalMod(
                                 navController = navController,
@@ -167,11 +165,20 @@ class MainActivity : ComponentActivity() {
                                 ticketViewModel = ticketViewModel,
                                 huertosViewModel = huertosViewModel,
                                 isDarkMode = darkTheme,
-                                onDarkModeChange = { darkTheme = it }
+                                onDarkModeChange = { darkTheme = it },
+                                onLogout = {
+                                    cerrarSesionCompleta(
+                                        auth = auth,
+                                        tm = tokenManager,
+                                        vmHuertos = huertosViewModel,
+                                        vmUsuarios = usuariosViewModel,
+                                        nv = navController,
+                                        scope = scope
+                                    )
+                                }
                             )
                         }
 
-                        // --- GESTIÓN HUERTOS ---
                         composable("crear_huerto") { CrearHuertoScreen(navController, huertosViewModel) }
 
                         composable(
@@ -198,7 +205,6 @@ class MainActivity : ComponentActivity() {
                             DetalleCultivoScreen(navController, huertosViewModel, cultivoId)
                         }
 
-                        // --- SOPORTE ---
                         composable("enviar_ticket") {
                             val miId = auth.currentUser?.uid ?: ""
                             LaunchedEffect(usuarioActual) {
@@ -215,7 +221,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // --- LÓGICA DE REDIRECCIÓN POR ROL (SPLASH) ---
+                // --- 🚩 LÓGICA DE REDIRECCIÓN Y CARGA DE PERFIL ---
                 LaunchedEffect(currentUser) {
                     if (currentUser != null) {
                         try {
@@ -226,18 +232,30 @@ class MainActivity : ComponentActivity() {
                                 val authData = response.body()
                                 if (authData != null) {
                                     tokenManager.saveToken(authData.accessToken, authData.userId)
+
+                                    // 🚩 NUEVO: Cargamos los datos reales del usuario (Nombre, Rol, etc.)
+                                    usuariosViewModel.cargarPerfilActual(authData.userId)
+
                                     val destino = when (authData.rol) {
                                         "ADMIN" -> "main_menuAdmin"
                                         "MOD" -> "main_menuMod"
                                         else -> "main_menuUser"
                                     }
-                                    navController.navigate(destino) { popUpTo(0) { inclusive = true } }
+
+                                    val rutaActual = navController.currentDestination?.route
+                                    if (rutaActual == "splash") {
+                                        navController.navigate(destino) {
+                                            popUpTo("splash") { inclusive = true }
+                                        }
+                                    }
                                 }
                             } else {
                                 logoutYLogin(auth, tokenManager, navController)
                             }
                         } catch (e: Exception) {
-                            navController.navigate("login") { popUpTo(0) { inclusive = true } }
+                            if (navController.currentDestination?.route == "splash") {
+                                navController.navigate("login") { popUpTo(0) { inclusive = true } }
+                            }
                         }
                     } else if (navController.currentDestination?.route == "splash") {
                         navController.navigate("login") { popUpTo(0) { inclusive = true } }

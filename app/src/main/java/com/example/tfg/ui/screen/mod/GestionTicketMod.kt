@@ -19,6 +19,12 @@ import androidx.compose.ui.unit.sp
 import com.example.tfg.data.model.Ticket
 import com.example.tfg.data.model.TipoTicket
 
+// 🚩 OPTIMIZACIÓN 1: Estado sellado para acciones del moderador
+sealed class TicketAction {
+    data object None : TicketAction()
+    data class ConfirmResolve(val ticket: Ticket) : TicketAction()
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GestionTicketsScreen(
@@ -27,15 +33,45 @@ fun GestionTicketsScreen(
     onRefresh: () -> Unit,
     onResolverTicket: (String) -> Unit
 ) {
-    val colorMod = Color(0xFF00796B)
+    var actionPendiente by remember { mutableStateOf<TicketAction>(TicketAction.None) }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF4F7F6))) {
+    // 🚩 OPTIMIZACIÓN 2: Diálogo de confirmación (Seguridad de estado)
+    if (actionPendiente is TicketAction.ConfirmResolve) {
+        val ticket = (actionPendiente as TicketAction.ConfirmResolve).ticket
+        AlertDialog(
+            onDismissRequest = { actionPendiente = TicketAction.None },
+            title = { Text("Resolver Ticket") },
+            text = { Text("¿Confirmas que el problema '${ticket.asunto}' ha sido solucionado?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        ticket.id?.let { onResolverTicket(it) }
+                        actionPendiente = TicketAction.None
+                    }
+                ) { Text("Confirmar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { actionPendiente = TicketAction.None }) { Text("Cancelar") }
+            }
+        )
+    }
 
-        // Cabecera
-        Box(modifier = Modifier.fillMaxWidth().background(colorMod).padding(20.dp)) {
-            Column {
-                Text("SOPORTE TÉCNICO", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
-                Text("Gestiona fallos y sugerencias de los usuarios", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+
+        // Cabecera que hereda el color Teal del Tema Mod
+        Surface(color = MaterialTheme.colorScheme.primary, shadowElevation = 4.dp) {
+            Column(modifier = Modifier.fillMaxWidth().padding(20.dp).statusBarsPadding()) {
+                Text(
+                    text = "CENTRO DE SOPORTE",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.White,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                Text(
+                    text = "Bandeja de entrada de incidencias",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.7f)
+                )
             }
         }
 
@@ -44,17 +80,25 @@ fun GestionTicketsScreen(
             onRefresh = onRefresh,
             modifier = Modifier.fillMaxSize()
         ) {
-            if (listaTickets.isEmpty()) {
+            if (listaTickets.isEmpty() && !isRefreshing) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Bandeja de entrada vacía. ¡Buen trabajo!", color = Color.Gray)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.DoneAll, null, modifier = Modifier.size(48.dp), tint = Color.Gray)
+                        Text("No hay tickets pendientes", color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(listaTickets) { ticket ->
-                        TicketItem(ticket = ticket, onResolver = { ticket.id?.let { onResolverTicket(it) } })
+                    // 🚩 OPTIMIZACIÓN 3: Key única para mejorar el rendimiento del scroll
+                    items(listaTickets, key = { it.id ?: "" }) { ticket ->
+                        TicketItem(
+                            ticket = ticket,
+                            onResolverClick = { actionPendiente = TicketAction.ConfirmResolve(ticket) }
+                        )
                     }
                 }
             }
@@ -63,90 +107,91 @@ fun GestionTicketsScreen(
 }
 
 @Composable
-fun TicketItem(ticket: Ticket, onResolver: () -> Unit) {
-    // 🚩 Definimos el color aquí para que no de error de compilación
-    val colorMod = Color(0xFF00796B)
-
+fun TicketItem(ticket: Ticket, onResolverClick: () -> Unit) {
+    // Colores semánticos según el tipo
     val colorTipo = when(ticket.tipo) {
-        TipoTicket.ERROR -> Color(0xFFD32F2F)
-        TipoTicket.SUGERENCIA -> Color(0xFF388E3C)
-        TipoTicket.OTRO -> Color(0xFFF9A825)
+        TipoTicket.ERROR -> MaterialTheme.colorScheme.error
+        TipoTicket.SUGERENCIA -> Color(0xFF388E3C) // Verde éxito
+        TipoTicket.OTRO -> Color(0xFFF9A825) // Ámbar
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            // Fila superior: Tipo, ID y Fecha
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     color = colorTipo.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(4.dp)
                 ) {
                     Text(
-                        text = ticket.tipo.name, // El Enum no suele ser nulo, pero ojo
+                        text = ticket.tipo.name,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                         color = colorTipo,
-                        fontSize = 10.sp,
+                        style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold
                     )
                 }
+
                 Spacer(Modifier.width(8.dp))
 
-                // 🚩 SEGURIDAD: Si el id es nulo, ponemos "00000"
                 Text(
-                    text = "Ticket #${ticket.id?.take(5) ?: "00000"}",
-                    color = Color.Gray,
-                    fontSize = 12.sp
+                    text = "#${ticket.id?.take(5) ?: "---"}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray
                 )
 
                 Spacer(Modifier.weight(1f))
 
-                // 🚩 SEGURIDAD: Si la fecha es nula, ponemos texto vacío
                 Text(
                     text = ticket.fecha ?: "",
-                    color = Color.Gray,
-                    fontSize = 12.sp
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
-            // 🚩 SEGURIDAD: Asunto y UsuarioNombre
+            // Cuerpo del Ticket
             Text(
                 text = ticket.asunto ?: "Sin asunto",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
             )
+
             Text(
-                text = "Enviado por: ${ticket.usuarioNombre ?: "Usuario desconocido"}",
-                fontSize = 13.sp,
-                color = colorMod // Corregido el nombre de la variable
+                text = "De: ${ticket.usuarioNombre ?: "Anónimo"}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
             )
 
             Spacer(Modifier.height(8.dp))
 
-            // 🚩 SEGURIDAD: Descripción
             Text(
-                text = ticket.descripcion ?: "Sin descripción adicional",
-                fontSize = 14.sp,
-                color = Color.DarkGray,
+                text = ticket.descripcion ?: "No se proporcionó descripción.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 20.sp
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
 
+            // Botón de Acción
             Button(
-                onClick = onResolver,
+                onClick = onResolverClick,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = colorTipo),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(vertical = 12.dp)
             ) {
-                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("MARCAR COMO RESUELTO")
+                Text("MARCAR COMO RESUELTO", fontWeight = FontWeight.Bold, fontSize = 12.sp)
             }
         }
     }

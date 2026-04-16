@@ -20,8 +20,6 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
-
-// Función para mostrar el mapa con el punto seleccionado
 @Composable
 fun MapaSelectorUbicacion(
     latitudActual: Double,
@@ -30,66 +28,78 @@ fun MapaSelectorUbicacion(
     onUbicacionSeleccionada: (Double, Double) -> Unit
 ) {
     val context = LocalContext.current
-    var marcadorActual by remember { mutableStateOf<Marker?>(null) }
 
-    // Configuramos la librería OSMDroid
-    LaunchedEffect(Unit) {
-        Configuration.getInstance().userAgentValue = context.packageName
-    }
+    // 🚩 OPTIMIZACIÓN 1: No necesitamos el marcador en un estado de Compose.
+    // Es mejor que el Mapa sea el que gestione sus propios objetos visuales
+    // para evitar desfases entre el estado de Compose y la vista de Android.
 
     Box(modifier = Modifier.fillMaxWidth().height(300.dp).clipToBounds()) {
-
-        //  AndroidView sirve para mostrar un componente de Android en Compose (en este caso un mapa)
         AndroidView(
             factory = { ctx ->
                 MapView(ctx).apply {
-                    layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
                     setTileSource(TileSourceFactory.MAPNIK)
                     setMultiTouchControls(true)
                     minZoomLevel = 4.0
                     controller.setZoom(15.0)
-                    controller.setCenter(GeoPoint(36.5283, -6.1901))
 
+                    // Centro inicial (Puerto Real/Cádiz)
+                    val puntoInicial = GeoPoint(36.5283, -6.1901)
+                    controller.setCenter(puntoInicial)
+
+                    // 🚩 OPTIMIZACIÓN 2: Gestión de gestos mejorada
+                    // Esto evita que al mover el mapa se haga scroll en la pantalla principal
                     setOnTouchListener { view, event ->
                         when (event.action) {
-                            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> view.parent?.requestDisallowInterceptTouchEvent(true)
-                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> view.parent?.requestDisallowInterceptTouchEvent(false)
+                            MotionEvent.ACTION_DOWN -> view.parent?.requestDisallowInterceptTouchEvent(true)
+                            MotionEvent.ACTION_UP -> view.parent?.requestDisallowInterceptTouchEvent(false)
                         }
                         false
                     }
 
-                    overlays.add(MapEventsOverlay(object : MapEventsReceiver {
+                    // 🚩 OPTIMIZACIÓN 3: El receptor de clics se queda fijo aquí
+                    val eventsOverlay = MapEventsOverlay(object : MapEventsReceiver {
                         override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
-                            marcadorActual?.let { overlays.remove(it) }
-                            marcadorActual = Marker(this@apply).apply {
-                                position = p
-                                title = "Punto seleccionado"
-                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                            }
-                            overlays.add(marcadorActual)
-                            invalidate()
+                            // En lugar de manejar el marcador aquí, llamamos al callback.
+                            // La lógica de "dibujar" el marcador la centralizamos en el 'update'.
                             onUbicacionSeleccionada(p.latitude, p.longitude)
                             return true
                         }
                         override fun longPressHelper(p: GeoPoint) = false
-                    }))
+                    })
+                    overlays.add(eventsOverlay)
                 }
             },
             update = { vistaMapa ->
+                // 🚩 OPTIMIZACIÓN 4: Sincronización limpia del estado
                 if (latitudActual != 0.0 && longitudActual != 0.0) {
                     val punto = GeoPoint(latitudActual, longitudActual)
-                    vistaMapa.controller.animateTo(punto)
-                    marcadorActual?.let { vistaMapa.overlays.remove(it) }
-                    marcadorActual = Marker(vistaMapa).apply {
+
+                    // Solo animamos si el mapa no está ya centrado ahí (evita bucles de animación)
+                    if (vistaMapa.mapCenter.latitude != punto.latitude) {
+                        vistaMapa.controller.animateTo(punto)
+                    }
+
+                    // Limpiamos SOLO los marcadores previos para no borrar la capa de eventos
+                    vistaMapa.overlays.removeAll { it is Marker }
+
+                    val nuevoMarcador = Marker(vistaMapa).apply {
                         position = punto
                         setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+
                         if (modoGpsActivo) {
                             icon = ContextCompat.getDrawable(context, android.R.drawable.ic_menu_mylocation)
-                            title = "📍 Mi GPS"
+                            title = "📍 Ubicación GPS"
+                        } else {
+                            title = "Punto seleccionado"
                         }
                     }
-                    vistaMapa.overlays.add(marcadorActual)
-                    vistaMapa.invalidate()
+
+                    vistaMapa.overlays.add(nuevoMarcador)
+                    vistaMapa.invalidate() // Forzamos el redibujado
                 }
             },
             modifier = Modifier.fillMaxSize()

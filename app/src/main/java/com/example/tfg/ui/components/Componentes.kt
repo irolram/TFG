@@ -17,13 +17,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.tfg.ui.screens.VerdePrimario
-import com.example.tfg.ui.screens.VerdeSecundario
 import com.example.tfg.data.model.CatalogoDePlantas
 import com.example.tfg.data.model.Huerto
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * OPTIMIZACIÓN 1: Eliminamos el Card innecesario.
+ * OutlinedTextField ya tiene soporte para fondo y forma. Menos capas = más rápido.
+ */
 @Composable
 fun HuertoTextField(
     value: String,
@@ -32,145 +32,118 @@ fun HuertoTextField(
     icon: ImageVector,
     isPassword: Boolean = false
 ) {
-    Card(
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier.fillMaxWidth(),
+        placeholder = { Text(placeholder) },
+        leadingIcon = { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+        singleLine = true,
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(placeholder, color = Color.Gray) },
-            leadingIcon = { Icon(imageVector = icon, contentDescription = null, tint = VerdePrimario) },
-            singleLine = true,
-            visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = VerdeSecundario,
-                unfocusedBorderColor = Color.Transparent,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                cursorColor = Color.Black
-            )
+        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
         )
-    }
+    )
 }
 
-// Función para mostrar la ficha técnica de la planta
+
+
 @Composable
 fun FichaTecnicaSimple(planta: CatalogoDePlantas) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9))
+        // Usamos el color secundario del tema suavizado
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "📏 Especificaciones de siembra",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = Color(0xFF2E7D32)
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-
-            InfoItem(label = "Riego:", valor = planta.riego ?: "N/A", icon = Icons.Default.WaterDrop)
-            InfoItem(label = "Luz:", valor = planta.luzSolar ?: "N/A", icon = Icons.Default.LightMode)
-            InfoItem(label = "Profundidad:", valor = planta.profundidadSiembra ?: "N/A", icon = Icons.Default.Straighten)
-            InfoItem(label = "Crecimiento:", valor = "${planta.diasCrecimiento ?: "--"} días", icon = Icons.Default.Timer)
-        }
-    }
-}
-// Función para personalizar las instrucciones de cada cultivo
-@Composable
-fun SeccionInstrucciones(instrucciones: String?) {
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.MenuBook, null, tint = Color(0xFF1B5E20), modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "Manual de cultivo",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 17.sp,
-                    color = Color(0xFF1B5E20)
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = instrucciones ?: "Cargando consejos de expertos para esta planta...",
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                color = Color.DarkGray
+            // Lista de items reutilizando el componente InfoItem
+            val specs = listOf(
+                Triple("Riego", planta.riego ?: "N/A", Icons.Default.WaterDrop),
+                Triple("Luz", planta.luzSolar ?: "N/A", Icons.Default.LightMode),
+                Triple("Profundidad", planta.profundidadSiembra ?: "N/A", Icons.Default.Straighten),
+                Triple("Crecimiento", "${planta.diasCrecimiento ?: "--"} días", Icons.Default.Timer)
             )
+
+            specs.forEach { (label, valor, icon) ->
+                InfoItem(label = label, valor = valor, icon = icon)
+            }
         }
     }
 }
 
-// Función para mostrar la información de cada cultivo
 @Composable
 fun InfoItem(label: String, valor: String, icon: ImageVector) {
     Row(
         modifier = Modifier.padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, null, modifier = Modifier.size(18.dp), tint = Color(0xFF4CAF50))
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
         Spacer(Modifier.width(8.dp))
-        Text(text = label, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+        Text(text = label, style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.weight(1f))
-        Text(text = valor, fontWeight = FontWeight.Bold, color = Color(0xFF1B5E20))
+        Text(
+            text = valor,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
-// Función para mostrar la información de cada cultivo menos detallado
-@Composable
-fun InfoRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(label, color = Color.Gray)
-        Text(value, fontWeight = FontWeight.Medium)
-    }
-}
-
+/**
+ * OPTIMIZACIÓN 3: Refactorización de ItemHuerto.
+ * Simplificamos el SwipeToDismiss para que sea más legible.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemHuerto(huerto: Huerto, onClick: () -> Unit, onDeleteClick: () -> Unit) {
-
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { dismissValue ->
-            if (dismissValue == SwipeToDismissBoxValue.StartToEnd || dismissValue == SwipeToDismissBoxValue.EndToStart) {
+            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
                 onDeleteClick()
-                false
-            } else {
-                false
-            }
+                true
+            } else false
         }
     )
 
     SwipeToDismissBox(
         state = dismissState,
+        enableDismissFromStartToEnd = false, // Solo permitimos borrar deslizando a la izquierda
         backgroundContent = {
+            val color = if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) Color.Red else Color.Transparent
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(bottom = 8.dp)
-                    .background(Color.Red, shape = CardDefaults.shape),
-                contentAlignment = Alignment.Center
+                    .background(color, shape = RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.CenterEnd
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Borrar Huerto",
+                    contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.padding(end = 16.dp).size(28.dp)
                 )
             }
         },
@@ -179,39 +152,29 @@ fun ItemHuerto(huerto: Huerto, onClick: () -> Unit, onDeleteClick: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onClick() },
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = huerto.nombre,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
                     )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = huerto.descripcion,
-                        fontSize = 14.sp,
-                        color = Color.DarkGray,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
+                    if (huerto.descripcion.isNotEmpty()) {
+                        Text(
+                            text = huerto.descripcion,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    // El widget de clima se mantiene porque es funcional
                     WidgetClima(latitud = huerto.latitud, longitud = huerto.longitud)
                 }
             }
         }
     )
 }
-

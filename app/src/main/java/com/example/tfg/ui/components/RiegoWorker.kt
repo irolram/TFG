@@ -1,138 +1,122 @@
 package com.example.tfg.ui.components
 
-
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.tfg.MainActivity
-import com.example.tfg.R
 import com.example.tfg.data.network.RetrofitClient
+import com.example.tfg.data.model.Huerto // Asegúrate de que estos nombres
+import com.example.tfg.data.model.Cultivo // coincidan con tus modelos
+import kotlinx.coroutines.*
 
 class RiegoWorker(appContext: Context, workerParams: WorkerParameters) :
     CoroutineWorker(appContext, workerParams) {
 
-    private fun necesitaNotificacion(tipoRiego: String): Boolean {
-        val riego = tipoRiego.lowercase()
-        return riego.contains("frecuente") || riego.contains("moderado")
+    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        ejecutarEscaneo(applicationContext)
     }
-    override suspend fun doWork(): Result {
-        val apiService = RetrofitClient.getApiService(applicationContext)
 
-        return try {
-            // 1. Usamos tu método real para traer la lista de huertos
-            val huertosResponse = apiService.obtenerHuertos()
+    companion object {
+        private const val CHANNEL_ID = "CANAL_RIEGO_TF"
+        private const val GROUP_KEY = "com.example.tfg.RIEGO_GROUP"
+        private const val SUMMARY_ID = 999
 
-            if (huertosResponse.isSuccessful) {
-                val listaHuertos = huertosResponse.body() ?: emptyList()
+        suspend fun lanzarNotificacionDemoRealista(context: Context) {
+            withContext(Dispatchers.IO) {
+                ejecutarEscaneo(context)
+            }
+        }
 
-                for (huerto in listaHuertos) {
-                    // 2. Usamos tu método para traer los cultivos de ESTE huerto concreto
-                    // Pasamos el huerto.id que sacamos del bucle anterior
-                    val cultivosResponse = apiService.obtenerCultivosDelHuerto(huerto.id.toString())
+        private suspend fun ejecutarEscaneo(context: Context): Result = coroutineScope {
+            val apiService = RetrofitClient.getApiService(context)
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-                    if (cultivosResponse.isSuccessful) {
-                        val listaCultivos = cultivosResponse.body() ?: emptyList()
+            crearCanalSiNoExiste(notificationManager)
 
-                        for (cultivo in listaCultivos) {
+            try {
+                val huertosRes = apiService.obtenerHuertos()
+                if (!huertosRes.isSuccessful) return@coroutineScope Result.retry()
 
-                            val tipoRiego = cultivo.infoCatalogo?.riego ?: "desconocido"
+                val listaHuertos = huertosRes.body() ?: emptyList()
 
-                            if (necesitaNotificacion(tipoRiego)) {
-                                lanzarNotificacionIndividual(
-                                    cultivo.id.hashCode(),
-                                    "Riego en ${huerto.nombre} ",
-                                    "${cultivo.nombre} necesita agua (Riego: ${tipoRiego})"
-                                )
-                            }
+                // 🚩 SOLUCIÓN AL ERROR ROJO:
+                // Añadimos <Pair<Huerto, List<Cultivo>>?> para que Kotlin sepa el tipo exacto
+                val resultados = listaHuertos.map { huerto ->
+                    async{
+                        val res = apiService.obtenerCultivosDelHuerto(huerto.id.toString())
+                        if (res.isSuccessful) {
+                            val cultivos = res.body() ?: emptyList()
+                            huerto to cultivos // Crea el Pair
+                        } else {
+                            null
+                        }
+                    }
+                }.awaitAll().filterNotNull()
+
+                var totalAlertas = 0
+
+                resultados.forEach { (huerto, cultivos) ->
+                    cultivos.forEach { cultivo ->
+                        val tipoRiego = cultivo.infoCatalogo?.riego?.lowercase() ?: ""
+                        if (tipoRiego.contains("frecuente") || tipoRiego.contains("moderado")) {
+                            enviarAlerta(
+                                context,
+                                notificationManager,
+                                cultivo.id.hashCode(),
+                                "Riego en ${huerto.nombre}",
+                                "${cultivo.nombre} necesita agua"
+                            )
+                            totalAlertas++
                         }
                     }
                 }
+
+                if (totalAlertas == 0) {
+                    enviarAlerta(context, notificationManager, 888, "Eco Drop", "Todo hidratado ✨")
+                }
+
                 Result.success()
-            } else {
-                Result.retry()
+            } catch (e: Exception) {
+                Result.failure()
             }
-        } catch (e: Exception) {
-            Result.failure()
         }
-    }
 
-    // Función auxiliar para filtrar (ajústala según lo que tengas en tu DB)
+        private fun enviarAlerta(ctx: Context, mgr: NotificationManager, id: Int, tit: String, msg: String) {
+            val intent = Intent(ctx, MainActivity::class.java)
+            val pi = PendingIntent.getActivity(ctx, id, intent, PendingIntent.FLAG_IMMUTABLE)
 
+            val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(tit)
+                .setContentText(msg)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setGroup(GROUP_KEY)
+                .setContentIntent(pi)
+                .setAutoCancel(true)
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun lanzarNotificacion(titulo: String, mensaje: String) {
-        val channelId = "CANAL_RIEGO_TF"
-        val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val intent = Intent(applicationContext, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(
-            applicationContext,
-            0,
-            intent,
-            PendingIntent.FLAG_IMMUTABLE
-        )
-        // 1. Forzamos importancia ALTA para que suene y salga el banner
-        val channel = NotificationChannel(
-            channelId,
-            "Recordatorios de Riego",
-            NotificationManager.IMPORTANCE_HIGH
-        ).apply {
-            description = "Canal para avisos de riego"
+            mgr.notify(id, builder.build())
+
+            val summary = NotificationCompat.Builder(ctx, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setGroup(GROUP_KEY)
+                .setGroupSummary(true)
+                .setAutoCancel(true)
+                .build()
+            mgr.notify(SUMMARY_ID, summary)
         }
-        notificationManager.createNotificationChannel(channel)
 
-        val builder = NotificationCompat.Builder(applicationContext, channelId)
-            // 2. USA UN ICONO DEL SISTEMA (esto no falla nunca)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle(titulo)
-            .setContentText(mensaje)
-            // 3. PRIORIDAD ALTA
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .setDefaults(NotificationCompat.DEFAULT_ALL)
-            .setContentIntent(pendingIntent) // Al tocarla, abre la App
-            .setAutoCancel(true) // La notificación desaparece al tocarla
-
-        notificationManager.notify(101, builder.build())
-    }
-    private fun lanzarNotificacionIndividual(notificationId: Int, titulo: String, mensaje: String) {
-        val channelId = "CANAL_RIEGO_TF"
-        val groupKey = "com.example.tfg.RIEGO_GROUP" // 🚩 La llave del grupo
-        val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        // 1. Intent para abrir la App
-        val intent = Intent(applicationContext, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(applicationContext, notificationId, intent, PendingIntent.FLAG_IMMUTABLE)
-
-        // 2. La notificación individual (ahora con setGroup)
-        val builder = NotificationCompat.Builder(applicationContext, channelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle(titulo)
-            .setContentText(mensaje)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setGroup(groupKey) // 🚩 IMPORTANTE: Todas las de riego llevan la misma llave
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-
-        notificationManager.notify(notificationId, builder.build())
-
-        // 3. Crear la NOTIFICACIÓN DE SUMARIO (La que agrupa a todas)
-        val summaryNotification = NotificationCompat.Builder(applicationContext, channelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Eco Drop: Alertas de Riego")
-            .setContentText("Tienes varios cultivos que necesitan agua")
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setGroup(groupKey)
-            .setGroupSummary(true)
-            .setAutoCancel(true)
-            .build()
-
-        notificationManager.notify(999, summaryNotification) // ID fijo para el sumario
+        private fun crearCanalSiNoExiste(mgr: NotificationManager) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                mgr.createNotificationChannel(
+                    NotificationChannel(CHANNEL_ID, "Alertas Riego", NotificationManager.IMPORTANCE_HIGH)
+                )
+            }
+        }
     }
 }

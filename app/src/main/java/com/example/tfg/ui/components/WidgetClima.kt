@@ -14,136 +14,145 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage // 📸 Librería Coil para iconos
+import coil.compose.AsyncImage
 import com.example.tfg.data.model.RespuestaPrevision
 import com.example.tfg.data.network.WeatherClient
-import kotlinx.coroutines.launch
 
 @Composable
 fun WidgetClima(latitud: Double, longitud: Double) {
-    val scope = rememberCoroutineScope()
+    // 🚩 OPTIMIZACIÓN 1: Estados más limpios
     var datosClima by remember { mutableStateOf<RespuestaPrevision?>(null) }
-    var cargando by remember { mutableStateOf(true) }
+    var cargando by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf(false) }
-
-    // Variable para forzar la recarga
     var version by remember { mutableIntStateOf(0) }
 
     val apiKey = "8cbe46aee05331a0d8229a37daa15f61"
 
+    // 🚩 OPTIMIZACIÓN 2: Corregir el uso de Corrutinas
+    // LaunchedEffect ya es un scope de corrutina. No necesitas scope.launch dentro.
     LaunchedEffect(latitud, longitud, version) {
         if (latitud != 0.0 && longitud != 0.0) {
             cargando = true
             error = false
-            scope.launch {
-                try {
-                    val respuesta = WeatherClient.apiService.getPrevisionClima(
-                        lat = latitud,
-                        lon = longitud,
-                        apiKey = apiKey
-                    )
-                    datosClima = respuesta
-                } catch (e: Exception) {
-                    error = true
-                } finally {
-                    cargando = false
-                }
+            try {
+                // Llamada directa suspendida
+                datosClima = WeatherClient.apiService.getPrevisionClima(
+                    lat = latitud,
+                    lon = longitud,
+                    apiKey = apiKey
+                )
+            } catch (e: Exception) {
+                error = true
+            } finally {
+                cargando = false
             }
-        } else {
-            cargando = false
-            error = true
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFFE3F2FD), shape = RoundedCornerShape(12.dp))
-            .padding(12.dp)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        )
     ) {
-        when {
-            cargando -> CircularProgressIndicator(
-                modifier = Modifier.size(24.dp).align(Alignment.Center),
-                color = Color(0xFF1976D2)
-            )
-            error || datosClima == null -> {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Clima no disponible", fontSize = 12.sp, color = Color.Gray)
-                    IconButton(onClick = { version++ }) {
-                        Icon(Icons.Default.Refresh, null, modifier = Modifier.size(16.dp))
-                    }
-                }
-            }
-            else -> {
-                val prevision = datosClima!!.lista[0]
-                val nombreCiudad = if (!datosClima!!.ciudad.nombre.isNullOrBlank()) {
-                    datosClima!!.ciudad.nombre
-                } else {
-                    "Zona Rural / Huerto"
-                }
+        Box(
+            modifier = Modifier.padding(12.dp).fillMaxWidth().heightIn(min = 60.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            when {
+                cargando -> CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
 
-                val iconoCode = prevision.clima.firstOrNull()?.icono ?: "01d"
-                val urlIcono = "https://openweathermap.org/img/wn/${iconoCode}@2x.png"
-
-                Column {
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.LocationCity, null, tint = Color(0xFF1976D2), modifier = Modifier.size(16.dp))
-                            Text(nombreCiudad, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1976D2), modifier = Modifier.padding(start = 4.dp))
-                        }
-
+                error || datosClima == null -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Clima no disponible", style = MaterialTheme.typography.labelSmall)
                         IconButton(onClick = { version++ }, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Refresh, "Refrescar", tint = Color.Gray, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Refresh, null, modifier = Modifier.size(14.dp))
                         }
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                else -> {
+                    val prevision = datosClima!!.lista[0]
+                    val iconoCode = prevision.clima.firstOrNull()?.icono ?: "01d"
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            AsyncImage(
-                                model = urlIcono,
-                                contentDescription = "Icono tiempo",
-                                modifier = Modifier.size(50.dp),
-                                contentScale = ContentScale.Fit
-                            )
-
-                            Column(modifier = Modifier.padding(start = 4.dp)) {
+                    Column {
+                        // Fila superior: Ciudad y Refrescar
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Filled.LocationOn, null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(14.dp))
                                 Text(
-                                    text = "${prevision.principal.temperatura.toInt()}°C",
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 20.sp
+                                    text = datosClima!!.ciudad.nombre.ifBlank { "Zona de cultivo" },
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
-                                Text(
-                                    text = prevision.clima.firstOrNull()?.descripcion?.replaceFirstChar { it.uppercase() } ?: "",
-                                    fontSize = 11.sp,
-                                    color = Color.DarkGray
-                                )
+                            }
+                            IconButton(onClick = { version++ }, modifier = Modifier.size(20.dp)) {
+                                Icon(Icons.Default.Refresh, null, tint = Color.Gray, modifier = Modifier.size(14.dp))
                             }
                         }
 
-                        Column(horizontalAlignment = Alignment.End) {
+                        // Fila inferior: Info Clima
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("${(prevision.probabilidadLluvia * 100).toInt()}%", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                Icon(Icons.Default.Umbrella, null, modifier = Modifier.size(14.dp).padding(start = 2.dp), tint = Color(0xFF1976D2))
+                                AsyncImage(
+                                    model = "https://openweathermap.org/img/wn/${iconoCode}@2x.png",
+                                    contentDescription = null,
+                                    modifier = Modifier.size(45.dp)
+                                )
+                                Column {
+                                    Text(
+                                        text = "${prevision.principal.temperatura.toInt()}°C",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                    Text(
+                                        text = prevision.clima.firstOrNull()?.descripcion?.replaceFirstChar { it.uppercase() } ?: "",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("${prevision.principal.humedad}%", fontSize = 11.sp, color = Color.Gray)
-                                Icon(Icons.Default.WaterDrop, null, modifier = Modifier.size(12.dp).padding(start = 2.dp), tint = Color(0xFF1E88E5))
+
+                            // Info extra (Lluvia y Humedad)
+                            Column(horizontalAlignment = Alignment.End) {
+                                WeatherInfoMini(
+                                    value = "${(prevision.probabilidadLluvia * 100).toInt()}%",
+                                    icon = Icons.Default.Umbrella
+                                )
+                                WeatherInfoMini(
+                                    value = "${prevision.principal.humedad}%",
+                                    icon = Icons.Default.WaterDrop
+                                )
                             }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun WeatherInfoMini(value: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(value, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(12.dp).padding(start = 2.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
     }
 }
