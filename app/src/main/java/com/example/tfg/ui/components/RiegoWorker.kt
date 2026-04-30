@@ -65,7 +65,7 @@ class RiegoWorker(appContext: Context, workerParams: WorkerParameters) :
 
                         val tipoRiego = cultivo.infoCatalogo?.riego
 
-                        if (tipoRiego == Riego.FRECUENTE || tipoRiego == Riego.MODERADO) {
+                        if (tipoRiego != null) {
                             enviarAlerta(
                                 context,
                                 notificationManager,

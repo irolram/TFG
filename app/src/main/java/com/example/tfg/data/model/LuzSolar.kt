@@ -6,8 +6,8 @@ enum class LuzSolar(val textoPantalla: String) {
     @SerializedName("Pleno sol")
     PLENO_SOL("Pleno sol"),
 
-    @SerializedName("Sol / Sombra parcial")
-    SOL_SOMBRA_PARCIAL("Sol / Sombra parcial"),
+    @SerializedName("Semisombra")
+    SEMISOMBRA("Sombra parcial"),
 
     @SerializedName("Sombra")
     SOMBRA("Sombra")
