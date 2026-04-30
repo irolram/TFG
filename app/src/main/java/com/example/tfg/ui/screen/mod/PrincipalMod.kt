@@ -7,7 +7,6 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -34,49 +33,66 @@ fun PantallaPrincipalMod(
 ) {
     val context = LocalContext.current
     var selectedItem by remember { mutableIntStateOf(0) }
-    val miId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-
+    val miId = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
     val apiService = remember { RetrofitClient.getApiService(context) }
 
     // --- OBSERVACIÓN DE ESTADOS ---
     val usuarioLogueado by usuarioViewModel.usuarioLogueado.collectAsState()
     val listaUsuarios by usuarioViewModel.listaUsuarios.collectAsState()
-    val listaHuertos = huertosViewModel.uiState.value.lista
+    val stateHuertos by huertosViewModel.uiState // 🚩 Usamos el state completo
 
     val listaTickets by ticketViewModel.listaTickets.collectAsState()
     val isRefreshingTickets by ticketViewModel.isRefreshing.collectAsState()
     val isRefreshingUsuarios by usuarioViewModel.isRefreshing.collectAsState()
 
-    // 🚩 SOLUCIÓN: Carga inmediata al entrar
+    // 🚩 1. CARGA DE PERFIL (Solo al arrancar)
     LaunchedEffect(Unit) {
         if (usuarioLogueado == null && miId.isNotEmpty()) {
             usuarioViewModel.cargarPerfilActual(miId)
+        }
+        // Aprovechamos para cargar los huertos también al inicio
+        huertosViewModel.obtenerTodosLosHuertos(apiService)
+    }
+
+    // 🚩 2. CARGA DINÁMICA DE TICKETS Y USUARIOS
+    // Esto se dispara cada vez que cambias de pestaña
+    LaunchedEffect(selectedItem) {
+        when (selectedItem) {
+            2 -> { // Pestaña de Tickets
+                if (listaTickets.isEmpty()) {
+                    ticketViewModel.listarTickets()
+                }
+            }
+            3 -> { // Pestaña de Comunidad (Usuarios)
+                if (listaUsuarios.isEmpty()) {
+                    usuarioViewModel.listarUsuarios()
+                }
+            }
         }
     }
 
 
     Scaffold(
         topBar = {
-            if (selectedItem != 4) {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = when(selectedItem) {
-                                0 -> "Mis Huertos"
-                                1 -> "Mapa Global"
-                                2 -> "Soporte Técnico"
-                                3 -> "Comunidad"
-                                else -> "Panel Mod"
-                            },
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimary
+            TopAppBar(
+                title = {
+                    Text(
+                        text = when(selectedItem) {
+                            0 -> "Mis Huertos"
+                            1 -> "Mapa Global"
+                            2 -> "Soporte Técnico"
+                            3 -> "Comunidad"
+                            4 -> "Mi Perfil"
+                            else -> "Panel Mod"
+                        },
+                        fontWeight = FontWeight.ExtraBold
                     )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
                 )
-            }
+            )
         },
         bottomBar = {
             NavigationBar(
@@ -107,7 +123,6 @@ fun PantallaPrincipalMod(
             }
         },
         floatingActionButton = {
-            // Solo permitimos crear huertos desde la pestaña 0
             if (selectedItem == 0) {
                 FloatingActionButton(
                     onClick = { navController.navigate("crear_huerto") },
@@ -127,7 +142,7 @@ fun PantallaPrincipalMod(
         ) {
             when (selectedItem) {
                 0 -> MisHuertosScreen(navController, huertosViewModel)
-                1 -> MapaHuertosScreen(huertos = listaHuertos)
+                1 -> MapaHuertosScreen(huertos = stateHuertos.lista)
                 2 -> GestionTicketsScreen(
                     listaTickets = listaTickets,
                     isRefreshing = isRefreshingTickets,

@@ -20,6 +20,10 @@ class PlantaViewModel(private val apiService: IApiService) : ViewModel() {
     var buscando = mutableStateOf(false)
     var errorBusqueda = mutableStateOf<String?>(null)
 
+    init {
+        cargarCatalogoInicial()
+    }
+
     // Función para Buscar plantas en el catálogo de Railway
     fun buscarPlantas(nombre: String) {
         if (nombre.length < 2) {
@@ -51,31 +55,23 @@ class PlantaViewModel(private val apiService: IApiService) : ViewModel() {
         }
     }
 
-    fun guardarPlantaEnHuerto(
-        huertoId: String,
-        plantaSeleccionada: CatalogoDePlantas,
-        onExito: () -> Unit
-    ) {
+    fun guardarPlantaEnHuerto(huertoId: String, planta: CatalogoDePlantas, apodo: String, onExito: () -> Unit) {
         viewModelScope.launch {
             try {
-                val cultivoParaEnviar = Cultivo(
-                    nombre = plantaSeleccionada.nombre,
+                val nuevoCultivo = Cultivo(
+                    nombre = planta.nombre,
                     estado = "PLANTADO",
                     fechaPlantacion = System.currentTimeMillis(),
                     huertoId = huertoId,
-                    infoCatalogo = plantaSeleccionada
+                    apodo = apodo.ifBlank { planta.nombre },
+
+                    infoCatalogo = planta
                 )
 
-                val respuesta = apiService.aniadirCultivo(huertoId, cultivoParaEnviar)
-
-                if (respuesta.isSuccessful) {
-                    onExito()
-                } else {
-                    errorBusqueda.value = "Error al guardar: ${respuesta.code()}"
-                }
+                val response = apiService.aniadirCultivo(huertoId, nuevoCultivo)
+                if (response.isSuccessful) onExito()
             } catch (e: Exception) {
-                errorBusqueda.value = "Fallo de conexión con el servidor"
-                e.printStackTrace()
+                Log.e("ERROR", "No se pudo guardar: ${e.message}")
             }
         }
     }

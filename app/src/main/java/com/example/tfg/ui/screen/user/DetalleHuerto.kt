@@ -29,6 +29,7 @@ import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.tfg.data.network.RetrofitClient
 import com.example.tfg.ui.components.WidgetClima
+import com.example.tfg.ui.components.formatTimestamp
 import com.example.tfg.viewModel.HuertosViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,11 +55,7 @@ fun DetalleHuertoScreen(
     }
 
     LaunchedEffect(huertoId) {
-        // Si por algún motivo la lista de huertos está vacía (ej. recarga), los pedimos
-        if (state.lista.isEmpty()) {
-            viewModel.obtenerTodosLosHuertos(apiService)
-        }
-        viewModel.cargarCultivosDeUnHuerto(apiService, huertoId)
+        viewModel.iniciarDetalleHuerto(apiService, huertoId)
     }
 
     Scaffold(
@@ -171,16 +168,16 @@ fun DetalleHuertoScreen(
             }
         }
     }
-}
-
-@Composable
+}@Composable
 fun ItemCultivo(
     cultivo: com.example.tfg.data.model.Cultivo,
     onDelete: () -> Unit,
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -189,10 +186,10 @@ fun ItemCultivo(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Icono de la planta desde el catálogo
             AsyncImage(
                 model = cultivo.infoCatalogo?.icono?.trim(),
                 contentDescription = null,
-                error = rememberVectorPainter(Icons.Default.Warning),
                 modifier = Modifier
                     .size(60.dp)
                     .clip(CircleShape)
@@ -203,24 +200,40 @@ fun ItemCultivo(
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
+                // 🚩 1. Nombre de la planta (Categoría)
                 Text(
                     text = cultivo.nombre.replaceFirstChar { it.uppercase() },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+
+                // 🚩 2. Apodo de la planta
+                Text(
+                    text = "Apodo: ${if (cultivo.apodo.isNotBlank()) cultivo.apodo else "Sin nombre"}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "Fecha de siembra:  ${formatTimestamp(cultivo.fechaPlantacion)}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                // Estado (opcional, para dar contexto)
                 Text(
                     text = "Estado: ${cultivo.estado}",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelSmall,
                     color = Color.Gray
                 )
             }
 
+            // Botón eliminar
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Eliminar",
-                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
                 )
             }
         }

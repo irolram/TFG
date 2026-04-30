@@ -8,9 +8,9 @@ data class CatalogoDePlantas(
     val nombre: String,
     @SerializedName("nombre_cientifico")
     val nombreCientifico: String?,
-    val riego: String?,
+    val riego: Riego?,
     @SerializedName("luz_solar")
-    val luzSolar: String?,
+    val luzSolar: LuzSolar?,
     @SerializedName("icono_url")
     val icono: String?,
     val instrucciones: String?,

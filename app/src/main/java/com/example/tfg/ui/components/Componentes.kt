@@ -1,5 +1,7 @@
 package com.example.tfg.ui.components
 
+import java.text.SimpleDateFormat
+import java.util.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -74,10 +76,12 @@ fun FichaTecnicaSimple(planta: CatalogoDePlantas) {
 
             // Lista de items reutilizando el componente InfoItem
             val specs = listOf(
-                Triple("Riego", planta.riego ?: "N/A", Icons.Default.WaterDrop),
-                Triple("Luz", planta.luzSolar ?: "N/A", Icons.Default.LightMode),
+                Triple("Riego", planta.riego?.name ?: "N/A", Icons.Default.WaterDrop),
+                Triple("Luz", planta.luzSolar?.name ?: "N/A", Icons.Default.LightMode),
                 Triple("Profundidad", planta.profundidadSiembra ?: "N/A", Icons.Default.Straighten),
-                Triple("Crecimiento", "${planta.diasCrecimiento ?: "--"} días", Icons.Default.Timer)
+                Triple("Crecimiento", "${planta.diasCrecimiento ?: "--"} días", Icons.Default.Timer),
+                Triple("Separación entre plantas", "${planta.distanciaEntrePlantas ?: "--"} ", Icons.Default.WaterDrop),
+                Triple("Estación ideal", planta.temporadaIdeal ?: "N/A", Icons.Default.CalendarMonth)
             )
 
             specs.forEach { (label, valor, icon) ->
@@ -177,4 +181,19 @@ fun ItemHuerto(huerto: Huerto, onClick: () -> Unit, onDeleteClick: () -> Unit) {
             }
         }
     )
+}
+
+fun formatTimestamp(timestamp: Long?): String {
+    if (timestamp == null || timestamp == 0L) return "Sin fecha"
+
+    return try {
+        // Definimos el formato: dd/MM/yyyy
+        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
+        // Creamos el objeto fecha directamente con el Long
+        val date = Date(timestamp)
+        sdf.format(date)
+    } catch (e: Exception) {
+        "Fecha inválida"
+    }
 }

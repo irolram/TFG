@@ -20,6 +20,9 @@ data class Cultivo(
     @SerializedName("huertoId")
     val huertoId: String,
 
+    @SerializedName("apodo")
+    val apodo: String,
+
     @SerializedName("catalogo_info")
     val infoCatalogo: CatalogoDePlantas? = null
 )

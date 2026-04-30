@@ -35,8 +35,50 @@ fun BuscarCultivoScreen(
     val buscando by viewModel.buscando
     val error by viewModel.errorBusqueda
 
-    LaunchedEffect(Unit) {
-        if (resultados.isEmpty()) viewModel.buscarPlantas("")
+    // Estados para el diálogo de apodo
+    var mostrarDialogo by remember { mutableStateOf(false) }
+    var plantaSeleccionada by remember { mutableStateOf<com.example.tfg.data.model.CatalogoDePlantas?>(null) }
+    var apodoTexto by remember { mutableStateOf("") }
+
+    // --- DIÁLOGO DE PERSONALIZACIÓN ---
+    if (mostrarDialogo && plantaSeleccionada != null) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogo = false },
+            title = { Text("Personalizar cultivo", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text("¿Qué nombre le quieres poner a tu ${plantaSeleccionada?.nombre}?")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = apodoTexto,
+                        onValueChange = { apodoTexto = it },
+                        label = { Text("Apodo (ej: La de la ventana)") },
+                        placeholder = { Text(plantaSeleccionada?.nombre ?: "") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        // 🚩 Llamamos al ViewModel pasando el apodo
+                        viewModel.guardarPlantaEnHuerto(huertoId, plantaSeleccionada!!, apodoTexto) {
+                            onCultivoGuardado()
+                        }
+                        mostrarDialogo = false
+                    }
+                ) {
+                    Text("Plantar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogo = false }) {
+                    Text("Cancelar", color = Color.Gray)
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -64,7 +106,6 @@ fun BuscarCultivoScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // BARRA DE BÚSQUEDA (Mantenemos tu lógica de onValueChange)
             OutlinedTextField(
                 value = textoBusqueda,
                 onValueChange = {
@@ -82,7 +123,6 @@ fun BuscarCultivoScreen(
                 )
             )
 
-            // Feedback de carga
             if (buscando) {
                 LinearProgressIndicator(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -96,7 +136,6 @@ fun BuscarCultivoScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // LISTA DE RESULTADOS
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -114,9 +153,10 @@ fun BuscarCultivoScreen(
                     ItemPlantaCatalogo(
                         planta = planta,
                         onClick = {
-                            viewModel.guardarPlantaEnHuerto(huertoId, planta) {
-                                onCultivoGuardado()
-                            }
+                            // 🚩 CAMBIO: En lugar de guardar, preparamos el diálogo
+                            plantaSeleccionada = planta
+                            apodoTexto = "" // Limpiar el campo para la nueva planta
+                            mostrarDialogo = true
                         }
                     )
                 }
@@ -159,13 +199,13 @@ fun ItemPlantaCatalogo(planta: com.example.tfg.data.model.CatalogoDePlantas, onC
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Sol: ${planta.luzSolar ?: "Pleno sol"}",
+                        text = "Sol: ${planta.luzSolar?.textoPantalla ?: "No Data"}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(" • ", color = Color.Gray)
                     Text(
-                        text = "Riego: ${planta.riego ?: "Moderado"}",
+                        text = "Riego: ${planta.riego?.textoPantalla ?: "No Data"}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold

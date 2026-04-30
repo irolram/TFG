@@ -11,8 +11,9 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.tfg.MainActivity
 import com.example.tfg.data.network.RetrofitClient
-import com.example.tfg.data.model.Huerto // Asegúrate de que estos nombres
-import com.example.tfg.data.model.Cultivo // coincidan con tus modelos
+import com.example.tfg.data.model.Huerto
+import com.example.tfg.data.model.Cultivo
+import com.example.tfg.data.model.Riego // 🚩 IMPORTANTE: Cambia esto a la ruta real de tu Enum si es diferente
 import kotlinx.coroutines.*
 
 class RiegoWorker(appContext: Context, workerParams: WorkerParameters) :
@@ -45,14 +46,12 @@ class RiegoWorker(appContext: Context, workerParams: WorkerParameters) :
 
                 val listaHuertos = huertosRes.body() ?: emptyList()
 
-                // 🚩 SOLUCIÓN AL ERROR ROJO:
-                // Añadimos <Pair<Huerto, List<Cultivo>>?> para que Kotlin sepa el tipo exacto
                 val resultados = listaHuertos.map { huerto ->
-                    async{
+                    async {
                         val res = apiService.obtenerCultivosDelHuerto(huerto.id.toString())
                         if (res.isSuccessful) {
                             val cultivos = res.body() ?: emptyList()
-                            huerto to cultivos // Crea el Pair
+                            huerto to cultivos
                         } else {
                             null
                         }
@@ -63,8 +62,10 @@ class RiegoWorker(appContext: Context, workerParams: WorkerParameters) :
 
                 resultados.forEach { (huerto, cultivos) ->
                     cultivos.forEach { cultivo ->
-                        val tipoRiego = cultivo.infoCatalogo?.riego?.lowercase() ?: ""
-                        if (tipoRiego.contains("frecuente") || tipoRiego.contains("moderado")) {
+
+                        val tipoRiego = cultivo.infoCatalogo?.riego
+
+                        if (tipoRiego == Riego.FRECUENTE || tipoRiego == Riego.MODERADO) {
                             enviarAlerta(
                                 context,
                                 notificationManager,

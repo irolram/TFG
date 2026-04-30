@@ -9,11 +9,14 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.example.tfg.data.network.RetrofitClient
 import com.example.tfg.viewModel.HuertosViewModel
 import com.example.tfg.viewModel.UsuarioViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,30 +30,40 @@ fun PantallaPrincipalUser(
     onTabChange: (Int) -> Unit,
     onLogout: () -> Unit
 ) {
-    // 🚩 OBSERVACIÓN DE ESTADOS
+    val context = LocalContext.current
+    val apiService = remember { RetrofitClient.getApiService(context) }
+    val miId = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
 
-    // Accedemos al nuevo UI State que optimizamos antes
+    // Observación de estados
     val state by huertosViewModel.uiState
+    val usuario by usuariosViewModel.usuarioLogueado.collectAsState()
 
     val items = listOf("Mis Huertos", "Mapa", "Perfil")
     val icons = listOf(Icons.Default.Eco, Icons.Default.Map, Icons.Default.Person)
 
-    // Atajos de colores del tema (ya configurados en tu TFGTheme)
     val colorPrimario = MaterialTheme.colorScheme.primary
     val colorOnPrimario = MaterialTheme.colorScheme.onPrimary
-    val miId = remember { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "" }
-    val usuario by usuariosViewModel.usuarioLogueado.collectAsState()
 
+    // 🚩 CARGA PROACTIVA: Perfil y Huertos (para tener pings en el mapa)
     LaunchedEffect(Unit) {
-        if (usuario == null && miId.isNotEmpty()) {
-            usuariosViewModel.cargarPerfilActual(miId)
+        if (miId.isNotEmpty()) {
+            if (usuario == null) usuariosViewModel.cargarPerfilActual(miId)
+            huertosViewModel.obtenerTodosLosHuertos(apiService)
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Eco Drop", fontWeight = FontWeight.ExtraBold) },
+                title = { Text(
+                    text = when(selectedItem) {
+                        0 -> "Mis Huertos"
+                        1 -> "Mapa de Huertos"
+                        2 -> "Mi Perfil"
+                        else -> "Eco Drop"
+                    },
+                    fontWeight = FontWeight.ExtraBold
+                ) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = colorPrimario,
                     titleContentColor = colorOnPrimario
@@ -78,7 +91,6 @@ fun PantallaPrincipalUser(
             }
         },
         floatingActionButton = {
-            // Solo mostramos el botón de añadir si estamos en la pestaña de Huertos (0)
             if (selectedItem == 0) {
                 FloatingActionButton(
                     onClick = { navController.navigate("crear_huerto") },
@@ -97,11 +109,8 @@ fun PantallaPrincipalUser(
                 .padding(paddingValues)
         ) {
             when (selectedItem) {
-                // 🚩 PASO DE DATOS OPTIMIZADO
                 0 -> MisHuertosScreen(navController, huertosViewModel)
-
                 1 -> MapaHuertosScreen(huertos = state.lista)
-
                 2 -> PerfilScreen(
                     usuario = usuario,
                     isDarkMode = isDarkMode,

@@ -43,9 +43,17 @@ class HuertosViewModel : ViewModel() {
         }
     }
 
+    fun iniciarDetalleHuerto(apiService: IApiService, huertoId: String) {
+        viewModelScope.launch {
+            if (_uiState.value.lista.isEmpty()) {
+                obtenerTodosLosHuertos(apiService)
+            }
+            cargarCultivosDeUnHuerto(apiService, huertoId)
+        }
+    }
+
     /**
      * Crear un nuevo huerto
-     * 🚩 RECUPERAMOS EL NOMBRE: crearNuevoHuerto
      */
     fun crearNuevoHuerto(apiService: IApiService, nombre: String, descripcion: String, lat: Double, lon: Double) {
         viewModelScope.launch {
