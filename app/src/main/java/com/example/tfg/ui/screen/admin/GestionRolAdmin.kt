@@ -117,8 +117,7 @@ fun GestionUsuariosAdminScreen(
         }
     }
 }
-
-// 🚩 OPTIMIZACIÓN 4: Componente de tarjeta extraído
+// 🚩 OPTIMIZACIÓN 4: Componente de tarjeta extraído y BLINDADO
 @Composable
 fun UsuarioCard(
     usuario: Usuario,
@@ -154,22 +153,48 @@ fun UsuarioCard(
                 }
             }
 
+            // 🛡️ AQUÍ EMPIEZA LA LÓGICA DE SEGURIDAD VISUAL
             if (!esPropio) {
-                Row {
-                    IconButton(onClick = {
-                        val next = if (usuario.rol == Rol.USER) Rol.MOD else Rol.ADMIN
-                        onPromote(next)
-                    }, enabled = usuario.rol != Rol.ADMIN) {
-                        Icon(Icons.Default.ArrowUpward, null, tint = if (usuario.rol != Rol.ADMIN) Color(0xFF4CAF50) else Color.LightGray)
-                    }
-                    IconButton(onClick = {
-                        val prev = if (usuario.rol == Rol.ADMIN) Rol.MOD else Rol.USER
-                        onDemote(prev)
-                    }, enabled = usuario.rol != Rol.USER) {
-                        Icon(Icons.Default.ArrowDownward, null, tint = if (usuario.rol != Rol.USER) Color(0xFFEF6C00) else Color.LightGray)
-                    }
-                    IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, null, tint = Color.Red)
+                if (usuario.rol == Rol.ADMIN) {
+                    // 🔴 Si el usuario de la tarjeta es ADMIN, bloqueamos cualquier acción
+                    Text(
+                        text = "👑 INTOCABLE",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                } else {
+                    // 🟢 Si es USER o MOD, le mostramos los controles (pero limitados)
+                    Row {
+                        // Botón Ascender: Solo permite subir de USER a MOD
+                        IconButton(
+                            onClick = { onPromote(Rol.MOD) },
+                            enabled = usuario.rol == Rol.USER
+                        ) {
+                            Icon(
+                                Icons.Default.ArrowUpward,
+                                contentDescription = "Ascender a Moderador",
+                                tint = if (usuario.rol == Rol.USER) Color(0xFF4CAF50) else Color.LightGray
+                            )
+                        }
+
+                        // Botón Degradar: Solo permite bajar de MOD a USER
+                        IconButton(
+                            onClick = { onDemote(Rol.USER) },
+                            enabled = usuario.rol == Rol.MOD
+                        ) {
+                            Icon(
+                                Icons.Default.ArrowDownward,
+                                contentDescription = "Degradar a Usuario",
+                                tint = if (usuario.rol == Rol.MOD) Color(0xFFEF6C00) else Color.LightGray
+                            )
+                        }
+
+                        // Botón Eliminar: Totalmente funcional para USER y MOD
+                        IconButton(onClick = onDelete) {
+                            Icon(Icons.Default.Delete, contentDescription = "Eliminar usuario", tint = Color.Red)
+                        }
                     }
                 }
             } else {

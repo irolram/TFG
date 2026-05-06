@@ -52,7 +52,16 @@ fun HuertoTextField(
     )
 }
 
-
+@Composable
+fun SectionTitle(title: String) {
+    Text(
+        text = " $title",
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(bottom = 8.dp)
+    )
+}
 
 @Composable
 fun FichaTecnicaSimple(planta: CatalogoDePlantas) {
@@ -126,7 +135,7 @@ fun ItemHuerto(huerto: Huerto, onClick: () -> Unit, onDeleteClick: () -> Unit) {
         confirmValueChange = { dismissValue ->
             if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
                 onDeleteClick()
-                true
+                false
             } else false
         }
     )

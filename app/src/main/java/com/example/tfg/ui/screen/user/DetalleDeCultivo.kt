@@ -1,5 +1,6 @@
 package com.example.tfg.ui.screen.user
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -19,10 +20,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.tfg.data.network.RetrofitClient
 import com.example.tfg.ui.components.FichaTecnicaSimple
+import com.example.tfg.ui.components.SectionTitle
 import com.example.tfg.viewModel.HuertosViewModel
 import com.example.tfg.viewModel.PlantaViewModel
 
@@ -126,15 +129,22 @@ fun DetalleCultivoScreen(
 
                 Spacer(Modifier.height(24.dp))
 
-                // 🌟 --- BOTÓN DE REGAR --- 🌟
                 Button(
                     onClick = {
-                        // Llamamos a la función de tu ViewModel para avisar a Spring Boot
-                        viewModelPlanta.regarPlanta(miCultivo.id.toString(),apiService)
+                        viewModelPlanta.regarPlanta(
+                            cultivoId = miCultivo.id.toString(),
+                            apiService = apiService,
+                            onSuccess = {
+                                Toast.makeText(context, "¡Planta regada con éxito!", Toast.LENGTH_SHORT).show()
+                            },
+                            onError = {
+                                Toast.makeText(context, "Error al regar la planta", Toast.LENGTH_SHORT).show()
+                            }
+                        )
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp), // Un poco más alto para que sea fácil de pulsar
+                        .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
@@ -147,7 +157,7 @@ fun DetalleCultivoScreen(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "He regado esta planta",
+                        text = "Regar Cultivo",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -164,7 +174,6 @@ fun DetalleCultivoScreen(
 
                 Spacer(Modifier.height(24.dp))
 
-                // --- CONSEJOS ---
                 SectionTitle(title = "Consejos de cultivo")
 
                 Card(
@@ -189,15 +198,4 @@ fun DetalleCultivoScreen(
             }
         }
     }
-}
-
-@Composable
-fun SectionTitle(title: String) {
-    Text(
-        text = " $title",
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(bottom = 8.dp)
-    )
 }

@@ -18,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -43,13 +42,14 @@ fun DetalleHuertoScreen(
     val context = LocalContext.current
     val apiService = remember { RetrofitClient.getApiService(context) }
 
-    // 🚩 OPTIMIZACIÓN 1: Acceso al nuevo UI State
+    // 🛡️ Estado para el diálogo de borrado
+    var idCultivoABorrar by remember { mutableStateOf<String?>(null) }
+
     val state by viewModel.uiState
     val token by tokenManager.accessToken.collectAsState(initial = null)
     val cultivos by viewModel.cultivosDelHuerto
     val cargandoCultivos by viewModel.cargandoCultivos
 
-    // 🚩 CLAVE: Buscamos el huerto específico en la lista del estado
     val huertoActual = remember(state.lista, huertoId) {
         state.lista.find { it.id == huertoId }
     }
@@ -97,14 +97,12 @@ fun DetalleHuertoScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- SECCIÓN CLIMA ---
             if (huertoActual != null) {
                 WidgetClima(
                     latitud = huertoActual.latitud,
                     longitud = huertoActual.longitud
                 )
             } else {
-                // Shimmer o carga simple
                 Card(
                     modifier = Modifier.fillMaxWidth().height(110.dp),
                     colors = CardDefaults.cardColors(
@@ -119,7 +117,6 @@ fun DetalleHuertoScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- LISTA DE CULTIVOS ---
             Text(
                 text = "Tus cultivos",
                 style = MaterialTheme.typography.titleLarge,
@@ -152,14 +149,7 @@ fun DetalleHuertoScreen(
                         ItemCultivo(
                             cultivo = cultivo,
                             onDelete = {
-                                cultivo.id?.let { idSeguro ->
-                                    viewModel.eliminarCultivoDelHuerto(
-                                        apiService = apiService,
-                                        huertoId = huertoId,
-                                        cultivoId = idSeguro,
-                                        token = token ?: ""
-                                    )
-                                }
+                                idCultivoABorrar = cultivo.id
                             },
                             onClick = { navController.navigate("detalle_planta/${cultivo.id}") }
                         )
@@ -168,7 +158,42 @@ fun DetalleHuertoScreen(
             }
         }
     }
-}@Composable
+
+    // 🌟 --- DIÁLOGO DE CONFIRMACIÓN PARA BORRAR PLANTA ---
+    if (idCultivoABorrar != null) {
+        AlertDialog(
+            onDismissRequest = { idCultivoABorrar = null },
+            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = Color.Red) },
+            title = { Text("¿Eliminar planta?") },
+            text = { Text("Se borrarán todos los datos de esta planta. Esta acción no se puede deshacer.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (token != null) {
+                            viewModel.eliminarCultivoDelHuerto(
+                                apiService = apiService,
+                                huertoId = huertoId,
+                                cultivoId = idCultivoABorrar!!,
+                                token = token!!
+                            )
+                        }
+                        idCultivoABorrar = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text("Borrar definitivamente")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { idCultivoABorrar = null }) {
+                    Text("Cancelar", color = Color.Gray)
+                }
+            }
+        )
+    }
+}
+
+@Composable
 fun ItemCultivo(
     cultivo: com.example.tfg.data.model.Cultivo,
     onDelete: () -> Unit,
@@ -186,7 +211,6 @@ fun ItemCultivo(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icono de la planta desde el catálogo
             AsyncImage(
                 model = cultivo.infoCatalogo?.icono?.trim(),
                 contentDescription = null,
@@ -200,7 +224,6 @@ fun ItemCultivo(
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                // 🚩 1. Nombre de la planta (Categoría)
                 Text(
                     text = cultivo.nombre.replaceFirstChar { it.uppercase() },
                     style = MaterialTheme.typography.titleMedium,
@@ -208,19 +231,18 @@ fun ItemCultivo(
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
-                // 🚩 2. Apodo de la planta
                 Text(
                     text = "Apodo: ${if (cultivo.apodo.isNotBlank()) cultivo.apodo else "Sin nombre"}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
                 )
+
                 Text(
-                    text = "Fecha de siembra:  ${formatTimestamp(cultivo.fechaPlantacion)}",
+                    text = "Fecha de siembra: ${formatTimestamp(cultivo.fechaPlantacion)}",
                     style = MaterialTheme.typography.bodyMedium
                 )
 
-                // Estado (opcional, para dar contexto)
                 Text(
                     text = "Estado: ${cultivo.estado}",
                     style = MaterialTheme.typography.labelSmall,
@@ -228,7 +250,6 @@ fun ItemCultivo(
                 )
             }
 
-            // Botón eliminar
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Default.Delete,
