@@ -11,9 +11,6 @@ import com.example.tfg.data.model.HuertoUiState
 import com.example.tfg.data.network.IApiService
 import kotlinx.coroutines.launch
 
-// 🚩 Esta clase es la que permite que 'state' funcione en las pantallas
-
-
 class HuertosViewModel : ViewModel() {
 
     // El estado unificado que esperan tus pantallas
@@ -127,6 +124,8 @@ class HuertosViewModel : ViewModel() {
             }
         }
     }
+
+
 
     /**
      * Reset de señales para la UI

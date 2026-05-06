@@ -3,18 +3,18 @@ package com.example.tfg.data.model
 import com.google.gson.annotations.SerializedName
 
 enum class Riego(val textoPantalla: String) {
-    @SerializedName("Escaso")
+    @SerializedName("ESCASO")
     ESCASO("Escaso"),
 
-    @SerializedName("Moderado")
+    @SerializedName("MODERADO")
     MODERADO("Moderado"),
 
-    @SerializedName("Frecuente")
+    @SerializedName("FRECUENTE")
     FRECUENTE("Frecuente"),
 
-    @SerializedName("Abundante")
+    @SerializedName("ABUNDANTE")
     ABUNDANTE("Abundante"),
 
-    @SerializedName("Constante")
+    @SerializedName("CONSTANTE")
     CONSTANTE("Constante")
 }

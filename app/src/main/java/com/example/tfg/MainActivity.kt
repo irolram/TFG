@@ -202,7 +202,7 @@ class MainActivity : ComponentActivity() {
                             arguments = listOf(navArgument("cultivoId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val cultivoId = backStackEntry.arguments?.getString("cultivoId") ?: ""
-                            DetalleCultivoScreen(navController, huertosViewModel, cultivoId)
+                            DetalleCultivoScreen(navController, huertosViewModel, plantasViewModel, cultivoId, )
                         }
 
                         composable("enviar_ticket") {
@@ -221,7 +221,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // --- 🚩 LÓGICA DE REDIRECCIÓN Y CARGA DE PERFIL ---
+                // --- 🚩 BLOQUE 1: OBTENER TOKEN Y PEDIR PERFIL ---
                 LaunchedEffect(currentUser) {
                     if (currentUser != null) {
                         try {
@@ -232,22 +232,8 @@ class MainActivity : ComponentActivity() {
                                 val authData = response.body()
                                 if (authData != null) {
                                     tokenManager.saveToken(authData.accessToken, authData.userId)
-
-                                    // 🚩 NUEVO: Cargamos los datos reales del usuario (Nombre, Rol, etc.)
+                                    // Pedimos los datos del usuario, pero NO cambiamos de pantalla todavía
                                     usuariosViewModel.cargarPerfilActual(authData.userId)
-
-                                    val destino = when (authData.rol) {
-                                        "ADMIN" -> "main_menuAdmin"
-                                        "MOD" -> "main_menuMod"
-                                        else -> "main_menuUser"
-                                    }
-
-                                    val rutaActual = navController.currentDestination?.route
-                                    if (rutaActual == "splash") {
-                                        navController.navigate(destino) {
-                                            popUpTo("splash") { inclusive = true }
-                                        }
-                                    }
                                 }
                             } else {
                                 logoutYLogin(auth, tokenManager, navController)
@@ -259,6 +245,27 @@ class MainActivity : ComponentActivity() {
                         }
                     } else if (navController.currentDestination?.route == "splash") {
                         navController.navigate("login") { popUpTo(0) { inclusive = true } }
+                    }
+                }
+
+                // --- 🚩 BLOQUE 2: NAVEGAR SOLO CUANDO EL TEMA ESTÉ LISTO ---
+                LaunchedEffect(usuarioActual) {
+                    // Esperamos a que usuarioActual se cargue de internet
+                    if (usuarioActual != null) {
+                        val rutaActual = navController.currentDestination?.route
+                        // Si estamos en la pantalla de carga, saltamos al menú
+                        if (rutaActual == "splash" || rutaActual == "login") {
+                            val destino = when (usuarioActual!!.rol.name) {
+                                "ADMIN" -> "main_menuAdmin"
+                                "MOD" -> "main_menuMod"
+                                else -> "main_menuUser"
+                            }
+
+                            navController.navigate(destino) {
+                                // Limpiamos el historial para que no puedan volver atrás a la pantalla de carga
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
                     }
                 }
             }

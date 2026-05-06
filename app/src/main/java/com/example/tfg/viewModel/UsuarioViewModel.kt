@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.tfg.data.model.AuthState
 import com.example.tfg.data.model.Rol
 import com.example.tfg.data.model.StatsDashboard
 import com.example.tfg.data.model.Usuario
@@ -17,14 +18,18 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+
 class UsuarioViewModel(application: Application) : AndroidViewModel(application) {
 
-    // --- 1. PROPIEDADES DE CONTEXTO Y API (PROFESIONAL) ---
     private val context = application.applicationContext
-    // 🚩 Inicializamos el apiService aquí para que esté disponible en toda la clase
     private val apiService = RetrofitClient.getApiService(context)
 
-    // --- 2. ESTADOS (Encapsulamiento profesional con asStateFlow) ---
+    // --- 2. ESTADOS ---
+
+    // 🌟 NUEVO 2: Estado de autenticación que empieza en "Cargando"
+    private val _authState = MutableStateFlow<AuthState>(AuthState.Cargando)
+    val authState: StateFlow<AuthState> = _authState.asStateFlow()
+
     private val _listaUsuarios = MutableStateFlow<List<Usuario>>(emptyList())
     val listaUsuarios: StateFlow<List<Usuario>> = _listaUsuarios.asStateFlow()
 
@@ -45,12 +50,15 @@ class UsuarioViewModel(application: Application) : AndroidViewModel(application)
         val uid = FirebaseAuth.getInstance().currentUser?.uid
         if (uid != null) {
             cargarPerfilActual(uid)
+        } else {
+            // 🌟 NUEVO 3: Si no hay UID en Firebase, no estamos logueados
+            _authState.value = AuthState.NoAutenticado
         }
-        // Solo listamos usuarios si somos Admin/Mod (se suele llamar desde la pantalla)
     }
 
     // --- 4. FUNCIONES DE USUARIOS ---
 
+    // ... (listarUsuarios, actualizarRol, eliminarUsuario se quedan exactamente igual) ...
     fun listarUsuarios() {
         viewModelScope.launch {
             _isRefreshing.value = true
@@ -73,7 +81,7 @@ class UsuarioViewModel(application: Application) : AndroidViewModel(application)
                 val response = apiService.actualizarRol(id, nuevoRol)
                 if (response.isSuccessful) {
                     Log.d("API_SUCCESS", "Rol cambiado a $nuevoRol")
-                    listarUsuarios() // Refrescamos la lista automáticamente
+                    listarUsuarios()
                 } else {
                     Log.e("API_ERROR", "Error: ${response.code()}")
                 }
@@ -99,22 +107,30 @@ class UsuarioViewModel(application: Application) : AndroidViewModel(application)
 
     fun cargarPerfilActual(uid: String) {
         viewModelScope.launch {
+            // 🌟 NUEVO 4: Avisamos a la UI de que estamos cargando datos
+            _authState.value = AuthState.Cargando
             try {
-                // 🚩 YA NO creamos el apiService aquí, usamos el de la clase
                 val response = apiService.obtenerUsuarioPorId(uid)
 
-                if (response.isSuccessful) {
-                    _usuarioLogueado.value = response.body()
-                    Log.d("API_SUCCESS", "Perfil de ${response.body()?.nombre} cargado")
+                if (response.isSuccessful && response.body() != null) {
+                    val usuario = response.body()!!
+                    _usuarioLogueado.value = usuario
+                    // 🌟 NUEVO 5: ¡Datos listos! Pasamos a estado Autenticado
+                    _authState.value = AuthState.Autenticado(usuario)
+                    Log.d("API_SUCCESS", "Perfil de ${usuario.nombre} cargado")
+                } else {
+                    // Si el servidor falla (ej. usuario borrado), deslogueamos
+                    _authState.value = AuthState.NoAutenticado
                 }
             } catch (e: Exception) {
                 Log.e("API_FAILURE", "Error de red: ${e.message}")
+                _authState.value = AuthState.NoAutenticado
             }
         }
     }
 
     // --- 5. ESTADÍSTICAS Y MAPA ---
-
+    // ... (cargarEstadisticas y cargarConteoProximidad se quedan igual) ...
     fun cargarEstadisticas() {
         viewModelScope.launch {
             try {
@@ -131,11 +147,8 @@ class UsuarioViewModel(application: Application) : AndroidViewModel(application)
     fun cargarConteoProximidad(lat: Double, lng: Double, radio: Double) {
         viewModelScope.launch {
             try {
-                // Log para ver qué llega de Railway
                 val response = apiService.obtenerConteoProximidad(lat, lng, radio)
-
                 if (response.isSuccessful) {
-
                     conteoProximidad = response.body() ?: 0L
                     Log.d("API_MAPA", "Huertos encontrados: $conteoProximidad")
                 }
@@ -146,9 +159,15 @@ class UsuarioViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun limpiarSesion() {
+        // 🌟 NUEVO 6: Pasamos a cargando un microsegundo para tapar la caída de datos
+        _authState.value = AuthState.Cargando
+
         _usuarioLogueado.value = null
         _listaUsuarios.value = emptyList()
         _stats.value = null
+
+        // Finalizamos el cierre de sesión
+        _authState.value = AuthState.NoAutenticado
         Log.d("AUTH", "Estado del ViewModel limpiado")
     }
 }

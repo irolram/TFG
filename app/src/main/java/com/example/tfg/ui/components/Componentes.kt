@@ -76,8 +76,8 @@ fun FichaTecnicaSimple(planta: CatalogoDePlantas) {
 
             // Lista de items reutilizando el componente InfoItem
             val specs = listOf(
-                Triple("Riego", planta.riego?.name ?: "N/A", Icons.Default.WaterDrop),
-                Triple("Luz", planta.luzSolar?.name ?: "N/A", Icons.Default.LightMode),
+                Triple("Riego", planta.riego?.textoPantalla?: "N/A", Icons.Default.WaterDrop),
+                Triple("Luz", planta.luzSolar?.textoPantalla ?: "N/A", Icons.Default.LightMode),
                 Triple("Profundidad", planta.profundidadSiembra ?: "N/A", Icons.Default.Straighten),
                 Triple("Crecimiento", "${planta.diasCrecimiento ?: "--"} días", Icons.Default.Timer),
                 Triple("Separación entre plantas", "${planta.distanciaEntrePlantas ?: "--"} ", Icons.Default.WaterDrop),

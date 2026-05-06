@@ -80,6 +80,9 @@ interface IApiService {
         @Path("cultivoId") cultivoId: String
     ): Response<Unit>
 
+    // Petición para indicarle al servidor que acabamos de regar
+    @PUT("api/huertos/{id}/regar")
+    suspend fun registrarRiego(@Path("id") cultivoId: String): Response<Cultivo>
 
     // ==========================================
     // 🌿 CATÁLOGO DE PLANTAS

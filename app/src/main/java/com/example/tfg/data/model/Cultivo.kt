@@ -24,5 +24,8 @@ data class Cultivo(
     val apodo: String,
 
     @SerializedName("catalogo_info")
-    val infoCatalogo: CatalogoDePlantas? = null
+    val infoCatalogo: CatalogoDePlantas? = null,
+
+    @SerializedName("fechaUltimoRiego")
+    val fechaUltimoRiego: String? = null
 )

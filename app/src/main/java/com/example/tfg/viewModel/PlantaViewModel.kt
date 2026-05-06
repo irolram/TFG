@@ -55,6 +55,25 @@ class PlantaViewModel(private val apiService: IApiService) : ViewModel() {
         }
     }
 
+    fun regarPlanta(cultivoId: String,apiService: IApiService) {
+        viewModelScope.launch {
+            try {
+                // Llamamos al endpoint que creamos antes
+                val response = apiService.registrarRiego(cultivoId)
+
+                if (response.isSuccessful) {
+                    // ¡Éxito! Aquí puedes actualizar la lista local de plantas
+                    // para que la interfaz cambie al instante si quieres.
+                    println("Planta regada correctamente")
+                } else {
+                    println("Error al regar: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                println("Fallo de red al regar: ${e.message}")
+            }
+        }
+    }
+
     fun guardarPlantaEnHuerto(huertoId: String, planta: CatalogoDePlantas, apodo: String, onExito: () -> Unit) {
         viewModelScope.launch {
             try {

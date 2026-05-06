@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
@@ -19,6 +20,7 @@ import kotlinx.coroutines.*
 class RiegoWorker(appContext: Context, workerParams: WorkerParameters) :
     CoroutineWorker(appContext, workerParams) {
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         ejecutarEscaneo(applicationContext)
     }
@@ -28,12 +30,14 @@ class RiegoWorker(appContext: Context, workerParams: WorkerParameters) :
         private const val GROUP_KEY = "com.example.tfg.RIEGO_GROUP"
         private const val SUMMARY_ID = 999
 
+        @RequiresApi(Build.VERSION_CODES.O)
         suspend fun lanzarNotificacionDemoRealista(context: Context) {
             withContext(Dispatchers.IO) {
                 ejecutarEscaneo(context)
             }
         }
 
+        @RequiresApi(Build.VERSION_CODES.O)
         private suspend fun ejecutarEscaneo(context: Context): Result = coroutineScope {
             val apiService = RetrofitClient.getApiService(context)
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -66,14 +70,47 @@ class RiegoWorker(appContext: Context, workerParams: WorkerParameters) :
                         val tipoRiego = cultivo.infoCatalogo?.riego
 
                         if (tipoRiego != null) {
-                            enviarAlerta(
-                                context,
-                                notificationManager,
-                                cultivo.id.hashCode(),
-                                "Riego en ${huerto.nombre}",
-                                "${cultivo.nombre} necesita agua"
-                            )
-                            totalAlertas++
+                            var necesitaAgua = false
+                            val ultimoRiegoStr = cultivo.fechaUltimoRiego
+
+                            if (ultimoRiegoStr == null) {
+                                // 💡 Si la fecha es nula, significa que la acabamos de plantar y nunca se ha regado.
+                                necesitaAgua = true
+                            } else {
+                                try {
+                                    // Transformamos el texto "2026-05-06" a un objeto fecha real
+                                    val ultimoRiego = java.time.LocalDate.parse(ultimoRiegoStr)
+                                    val diasPasados = java.time.temporal.ChronoUnit.DAYS.between(ultimoRiego, java.time.LocalDate.now())
+
+                                    // Definimos el límite de días según tu Enum
+                                    val diasParaAvisar = when (tipoRiego.name) {
+                                        "CONSTANTE" -> 1 // Todos los días
+                                        "ABUNDANTE" -> 2 // Cada 2 días
+                                        "FRECUENTE" -> 3 // Cada 3 días
+                                        "MODERADO" -> 5  // Cada 5 días
+                                        "ESCASO" -> 10   // Cada 10 días
+                                        else -> 999
+                                    }
+
+                                    // Si han pasado los días suficientes, disparamos la alerta
+                                    if (diasPasados >= diasParaAvisar) {
+                                        necesitaAgua = true
+                                    }
+                                } catch (e: Exception) {
+                                    android.util.Log.e("RIEGO_WORKER", "Error leyendo fecha del cultivo ${cultivo.nombre}")
+                                }
+                            }
+
+                            if (necesitaAgua) {
+                                enviarAlerta(
+                                    context,
+                                    notificationManager,
+                                    cultivo.id.hashCode(),
+                                    "Riego en ${huerto.nombre}",
+                                    "Tu ${cultivo.nombre} necesita agua (${tipoRiego.textoPantalla})"
+                                )
+                                totalAlertas++
+                            }
                         }
                     }
                 }

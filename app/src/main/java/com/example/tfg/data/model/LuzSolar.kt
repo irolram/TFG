@@ -3,12 +3,12 @@ package com.example.tfg.data.model
 import com.google.gson.annotations.SerializedName
 
 enum class LuzSolar(val textoPantalla: String) {
-    @SerializedName("Pleno sol")
+    @SerializedName("PLENO_SOL")
     PLENO_SOL("Pleno sol"),
 
-    @SerializedName("Semisombra")
+    @SerializedName("SEMISOMBRA")
     SEMISOMBRA("Sombra parcial"),
 
-    @SerializedName("Sombra")
+    @SerializedName("SOMBRA")
     SOMBRA("Sombra")
 }
