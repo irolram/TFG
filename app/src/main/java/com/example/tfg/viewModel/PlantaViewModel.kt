@@ -55,21 +55,26 @@ class PlantaViewModel(private val apiService: IApiService) : ViewModel() {
         }
     }
 
-    fun regarPlanta(cultivoId: String,apiService: IApiService) {
+    fun regarPlanta(
+        cultivoId: String,
+        apiService: IApiService, // (O el nombre que tenga tu interfaz de Retrofit)
+        onSuccess: () -> Unit,  // 🌟 Callback de éxito
+        onError: () -> Unit     // 🌟 Callback de error
+    ) {
         viewModelScope.launch {
             try {
-                // Llamamos al endpoint que creamos antes
                 val response = apiService.registrarRiego(cultivoId)
 
                 if (response.isSuccessful) {
-                    // ¡Éxito! Aquí puedes actualizar la lista local de plantas
-                    // para que la interfaz cambie al instante si quieres.
-                    println("Planta regada correctamente")
+                    // Si el servidor devuelve 200 OK, avisamos a la pantalla
+                    onSuccess()
                 } else {
-                    println("Error al regar: ${response.code()}")
+                    // Si devuelve error (ej. 404), avisamos del fallo
+                    onError()
                 }
             } catch (e: Exception) {
-                println("Fallo de red al regar: ${e.message}")
+                // Si no hay internet o se cae la red
+                onError()
             }
         }
     }

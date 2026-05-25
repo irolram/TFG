@@ -35,7 +35,6 @@ fun BuscarCultivoScreen(
     val buscando by viewModel.buscando
     val error by viewModel.errorBusqueda
 
-    // Estados para el diálogo de apodo
     var mostrarDialogo by remember { mutableStateOf(false) }
     var plantaSeleccionada by remember { mutableStateOf<com.example.tfg.data.model.CatalogoDePlantas?>(null) }
     var apodoTexto by remember { mutableStateOf("") }

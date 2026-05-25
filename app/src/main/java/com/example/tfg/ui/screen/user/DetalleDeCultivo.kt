@@ -98,10 +98,9 @@ fun DetalleCultivoScreen(
                         AsyncImage(
                             model = detalleEspecie?.icono?.trim(),
                             contentDescription = null,
-                            contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(100.dp)
-                                .clip(CircleShape)
+                                .clip(RoundedCornerShape(16.dp))
                                 .background(MaterialTheme.colorScheme.primaryContainer)
                         )
                         Spacer(Modifier.width(20.dp))
@@ -130,16 +129,15 @@ fun DetalleCultivoScreen(
 
                 Spacer(Modifier.height(24.dp))
 
-                //  --- BOTÓN DE REGAR ---
+                // 🌟 --- BOTÓN DE REGAR --- 🌟
                 Button(
                     onClick = {
-                        // Llamamos a la función del ViewModel para avisar a Spring Boot
+                        // Llamamos a la función de tu ViewModel para avisar a Spring Boot
                         viewModelPlanta.regarPlanta(miCultivo.id.toString(),apiService)
-                        Toast.makeText(context, "Cultivo regado con exito", Toast.LENGTH_SHORT).show()
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(56.dp), // Un poco más alto para que sea fácil de pulsar
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
@@ -152,7 +150,7 @@ fun DetalleCultivoScreen(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Regar cultivo",
+                        text = "He regado esta planta",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
