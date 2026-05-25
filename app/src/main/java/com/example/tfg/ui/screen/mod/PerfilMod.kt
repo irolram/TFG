@@ -1,5 +1,7 @@
 package com.example.tfg.ui.screen.mod
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -23,6 +25,7 @@ import com.example.tfg.data.model.Usuario
 import com.example.tfg.ui.components.RiegoWorker
 import kotlinx.coroutines.launch
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun PerfilModScreen(
     usuario: Usuario?,
@@ -136,8 +139,8 @@ fun PerfilModScreen(
                 )
             ) {
                 ListItem(
-                    headlineContent = { Text("Catálogo de Plantas") },
-                    supportingContent = { Text("Tienes permisos para editar fichas técnicas") },
+                    headlineContent = { Text("Gestión Tickets") },
+                    supportingContent = { Text("Tienes permisos para editar tickets") },
                     leadingContent = { Icon(Icons.Default.EditNote, null, tint = colorPrimario) },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                 )

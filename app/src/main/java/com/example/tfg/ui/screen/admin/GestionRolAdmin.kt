@@ -156,20 +156,44 @@ fun UsuarioCard(
 
             if (!esPropio) {
                 Row {
-                    IconButton(onClick = {
-                        val next = if (usuario.rol == Rol.USER) Rol.MOD else Rol.ADMIN
-                        onPromote(next)
-                    }, enabled = usuario.rol != Rol.ADMIN) {
-                        Icon(Icons.Default.ArrowUpward, null, tint = if (usuario.rol != Rol.ADMIN) Color(0xFF4CAF50) else Color.LightGray)
+                    // 1. BOTÓN DE ASCENDER (Solo habilitado si es USER. Si es MOD o ADMIN, saldrá gris)
+                    IconButton(
+                        onClick = {
+                            if (usuario.rol == Rol.USER) {
+                                onPromote(Rol.MOD)
+                            }
+                        },
+                        enabled = usuario.rol == Rol.USER
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowUpward,
+                            contentDescription = "Ascender",
+                            tint = if (usuario.rol == Rol.USER) Color(0xFF4CAF50) else Color.LightGray
+                        )
                     }
-                    IconButton(onClick = {
-                        val prev = if (usuario.rol == Rol.ADMIN) Rol.MOD else Rol.USER
-                        onDemote(prev)
-                    }, enabled = usuario.rol != Rol.USER) {
-                        Icon(Icons.Default.ArrowDownward, null, tint = if (usuario.rol != Rol.USER) Color(0xFFEF6C00) else Color.LightGray)
+
+                    // 2. BOTÓN DE DEGRADAR (Habilitado si es MOD o ADMIN. Deshabilitado si ya es USER)
+                    IconButton(
+                        onClick = {
+                            val prev = if (usuario.rol == Rol.ADMIN) Rol.MOD else Rol.USER
+                            onDemote(prev)
+                        },
+                        enabled = usuario.rol != Rol.USER
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowDownward,
+                            contentDescription = "Degradar",
+                            tint = if (usuario.rol != Rol.USER) Color(0xFFEF6C00) else Color.LightGray
+                        )
                     }
+
+                    // 3. BOTÓN DE ELIMINAR
                     IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, null, tint = Color.Red)
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Eliminar",
+                            tint = Color.Red
+                        )
                     }
                 }
             } else {

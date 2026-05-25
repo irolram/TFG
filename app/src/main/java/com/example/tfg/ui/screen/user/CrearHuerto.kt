@@ -31,7 +31,6 @@ import com.google.android.gms.location.LocationServices
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewModel) {
-    // 🚩 OPTIMIZACIÓN: Acceso limpio al estado del ViewModel
     val state by viewModel.uiState
 
     val context = LocalContext.current
@@ -112,7 +111,7 @@ fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewMo
 
             HorizontalDivider()
 
-            // --- BLOQUE 2: GPS ---
+            // --- GPS ---
             Text("Localización", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
 
             Button(

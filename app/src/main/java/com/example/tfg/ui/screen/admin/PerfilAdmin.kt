@@ -173,7 +173,7 @@ fun PerfilAdminScreen(
             ) {
                 Icon(Icons.AutoMirrored.Filled.ExitToApp, null)
                 Spacer(Modifier.width(8.dp))
-                Text("Cerrar Sesión Segura", fontWeight = FontWeight.Bold)
+                Text("Cerrar Sesión", fontWeight = FontWeight.Bold)
             }
         }
     }

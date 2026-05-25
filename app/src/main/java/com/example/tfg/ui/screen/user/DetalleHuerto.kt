@@ -210,7 +210,7 @@ fun ItemCultivo(
 
                 // 🚩 2. Apodo de la planta
                 Text(
-                    text = "Apodo: ${if (cultivo.apodo.isNotBlank()) cultivo.apodo else "Sin nombre"}",
+                    text = "Apodo: ${if (cultivo.apodo.isNotBlank()) cultivo.apodo.replaceFirstChar { it.uppercase() } else "Sin nombre"}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium

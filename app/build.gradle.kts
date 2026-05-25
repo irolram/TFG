@@ -5,13 +5,9 @@ plugins {
 
 }
 
-android {
-    namespace = "com.example.tfg"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    android {
+        namespace = "com.example.tfg"
+        compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.tfg"

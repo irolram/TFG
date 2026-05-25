@@ -1,9 +1,11 @@
 package com.example.tfg.ui.screen.user
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -15,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -95,9 +98,10 @@ fun DetalleCultivoScreen(
                         AsyncImage(
                             model = detalleEspecie?.icono?.trim(),
                             contentDescription = null,
+                            contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(100.dp)
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.primaryContainer)
                         )
                         Spacer(Modifier.width(20.dp))
@@ -126,15 +130,16 @@ fun DetalleCultivoScreen(
 
                 Spacer(Modifier.height(24.dp))
 
-                // 🌟 --- BOTÓN DE REGAR --- 🌟
+                //  --- BOTÓN DE REGAR ---
                 Button(
                     onClick = {
-                        // Llamamos a la función de tu ViewModel para avisar a Spring Boot
+                        // Llamamos a la función del ViewModel para avisar a Spring Boot
                         viewModelPlanta.regarPlanta(miCultivo.id.toString(),apiService)
+                        Toast.makeText(context, "Cultivo regado con exito", Toast.LENGTH_SHORT).show()
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp), // Un poco más alto para que sea fácil de pulsar
+                        .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
@@ -147,7 +152,7 @@ fun DetalleCultivoScreen(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "He regado esta planta",
+                        text = "Regar cultivo",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )

@@ -118,7 +118,7 @@ fun PantallaPrincipalAdmin(
                 )
                 2 -> MapaAdminScreen(viewModel)
                 3 -> PerfilAdminScreen(
-                    usuario = usuarioLogueado, // 🚩 Ahora llegará ya cargado
+                    usuario = usuarioLogueado,
                     isDarkMode = isDarkMode,
                     onDarkModeChange = onDarkModeChange,
                     onLogout = onLogout
@@ -156,7 +156,7 @@ fun DashboardAdminContent(viewModel: UsuarioViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     EstadisticaCard(
-                        titulo = "Usuarios",
+                        titulo = "Usuarios totales",
                         valor = "${stats!!.totalUsuarios}",
                         icono = Icons.Default.People,
                         color = MaterialTheme.colorScheme.primary,
