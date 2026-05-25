@@ -11,19 +11,18 @@ import com.example.tfg.data.model.HuertoUiState
 import com.example.tfg.data.network.IApiService
 import kotlinx.coroutines.launch
 
+// ViewModel para los huertos
 class HuertosViewModel : ViewModel() {
 
-    // El estado unificado que esperan tus pantallas
     private val _uiState = mutableStateOf(HuertoUiState())
     val uiState: State<HuertoUiState> = _uiState
 
-    // Estados para cultivos (los mantenemos como los tenías)
+    // Estados para cultivos del huerto
     val cultivosDelHuerto = mutableStateOf<List<Cultivo>>(emptyList())
     val cargandoCultivos = mutableStateOf(false)
 
-    /**
-     * Obtener todos los huertos
-     */
+     // Obtenemos todos los huertos
+
     fun obtenerTodosLosHuertos(apiService: IApiService) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(cargando = true, error = null)
@@ -39,7 +38,7 @@ class HuertosViewModel : ViewModel() {
             }
         }
     }
-
+// Función para iniciar el detalle del huerto
     fun iniciarDetalleHuerto(apiService: IApiService, huertoId: String) {
         viewModelScope.launch {
             if (_uiState.value.lista.isEmpty()) {
@@ -49,9 +48,8 @@ class HuertosViewModel : ViewModel() {
         }
     }
 
-    /**
-     * Crear un nuevo huerto
-     */
+
+    // Función para crear un nuevo huerto
     fun crearNuevoHuerto(apiService: IApiService, nombre: String, descripcion: String, lat: Double, lon: Double) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(cargando = true, error = null, operacionExitosa = false)
@@ -72,9 +70,7 @@ class HuertosViewModel : ViewModel() {
         }
     }
 
-    /**
-     * Borrar huerto
-     */
+    // Función para borrar un huerto
     fun borrarHuerto(apiService: IApiService, idHuerto: String) {
         viewModelScope.launch {
             try {
@@ -91,9 +87,7 @@ class HuertosViewModel : ViewModel() {
         }
     }
 
-    /**
-     * Cargar cultivos de un huerto
-     */
+    // Función para cargar cultivos de un huerto
     fun cargarCultivosDeUnHuerto(apiService: IApiService, huertoId: String) {
         viewModelScope.launch {
             cargandoCultivos.value = true
@@ -108,9 +102,7 @@ class HuertosViewModel : ViewModel() {
         }
     }
 
-    /**
-     * Eliminar cultivo
-     */
+    // Función para eliminar un cultivo de un huerto
     fun eliminarCultivoDelHuerto(apiService: IApiService, huertoId: String, cultivoId: String, token: String) {
         viewModelScope.launch {
             try {
@@ -127,16 +119,13 @@ class HuertosViewModel : ViewModel() {
 
 
 
-    /**
-     * Reset de señales para la UI
-     */
+
     fun resetEstado() {
         _uiState.value = _uiState.value.copy(operacionExitosa = false, error = null)
     }
 
-    /**
-     * Limpieza al cerrar sesión
-     */
+    //Limpieza al cerrar sesión
+
     fun limpiarDatos() {
         _uiState.value = HuertoUiState()
         cultivosDelHuerto.value = emptyList()

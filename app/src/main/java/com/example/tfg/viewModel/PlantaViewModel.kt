@@ -11,7 +11,7 @@ import com.example.tfg.data.network.WeatherClient.apiService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
+// ViewModel para las plantas
 class PlantaViewModel(private val apiService: IApiService) : ViewModel() {
 
     // Variable para almacenar los resultados de la búsqueda
@@ -24,7 +24,8 @@ class PlantaViewModel(private val apiService: IApiService) : ViewModel() {
         cargarCatalogoInicial()
     }
 
-    // Función para Buscar plantas en el catálogo de Railway
+
+    // Función para Buscar plantas en el catálogo
     fun buscarPlantas(nombre: String) {
         if (nombre.length < 2) {
             resultadosBusqueda.value = emptyList()
@@ -39,12 +40,11 @@ class PlantaViewModel(private val apiService: IApiService) : ViewModel() {
                 val respuesta = apiService.buscarEnCatalogo(nombre)
 
                 if (respuesta.isSuccessful) {
-                    // Sacamos la lista del "sobre" con .body()
-                    // Si el cuerpo es nulo, le pasamos una lista vacía para que no pete
+                    // Si el cuerpo es nulo, le pasamos una lista vacía
                     resultadosBusqueda.value = respuesta.body() ?: emptyList()
                 } else {
-                    // Aquí puedes gestionar si el servidor falla (opcional)
-                    println("Error en la búsqueda: ${respuesta.code()}")
+                    errorBusqueda.value = "Error en el servidor: ${respuesta.code()}"
+
                 }
             } catch (e: Exception) {
                 errorBusqueda.value = "Error al conectar con el catálogo"
@@ -55,6 +55,7 @@ class PlantaViewModel(private val apiService: IApiService) : ViewModel() {
         }
     }
 
+    // Función para regar una planta
     fun regarPlanta(
         cultivoId: String,
         apiService: IApiService,
@@ -78,7 +79,7 @@ class PlantaViewModel(private val apiService: IApiService) : ViewModel() {
             }
         }
     }
-
+// Función para guardar una planta en un huerto
     fun guardarPlantaEnHuerto(huertoId: String, planta: CatalogoDePlantas, apodo: String, onExito: () -> Unit) {
         viewModelScope.launch {
             try {
@@ -102,10 +103,7 @@ class PlantaViewModel(private val apiService: IApiService) : ViewModel() {
 
     val cargando = mutableStateOf(false)
 
-    init {
-        cargarCatalogoInicial()
-    }
-
+    // Función para cargar el catálogo inicial
     fun cargarCatalogoInicial() {
         viewModelScope.launch(Dispatchers.IO) {
             cargando.value = true

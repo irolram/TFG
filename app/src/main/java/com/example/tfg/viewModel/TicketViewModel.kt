@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+// Clase para el ViewModel de Tickets
 class TicketViewModel(private val apiService: IApiService) : ViewModel() {
     private val _listaTickets = MutableStateFlow<List<Ticket>>(emptyList())
     val listaTickets: StateFlow<List<Ticket>> = _listaTickets
@@ -19,6 +20,7 @@ class TicketViewModel(private val apiService: IApiService) : ViewModel() {
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
+    // Función para listar tickets
     fun listarTickets() {
         viewModelScope.launch {
             _isRefreshing.value = true
@@ -33,8 +35,7 @@ class TicketViewModel(private val apiService: IApiService) : ViewModel() {
         }
     }
 
-// TicketViewModel.kt
-
+    // Función para resolver un ticket
     fun resolverTicket(id: String) {
         viewModelScope.launch {
             try {
@@ -47,7 +48,7 @@ class TicketViewModel(private val apiService: IApiService) : ViewModel() {
             }
         }
     }
-
+// Función para enviar un ticket
     fun enviarTicket(asunto: String, descripcion: String, usuario: Usuario?, tipo: TipoTicket)
     {
         val nuevoTicket = Ticket(

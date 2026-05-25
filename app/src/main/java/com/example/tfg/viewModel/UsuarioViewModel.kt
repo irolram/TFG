@@ -1,5 +1,6 @@
 package com.example.tfg.viewModel
 
+import android.annotation.SuppressLint
 import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.getValue
@@ -18,15 +19,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-
+// Clase para el ViewModel de Usuarios
 class UsuarioViewModel(application: Application) : AndroidViewModel(application) {
 
+    @SuppressLint("StaticFieldLeak")
     private val context = application.applicationContext
     private val apiService = RetrofitClient.getApiService(context)
 
-    // --- 2. ESTADOS ---
 
-    // 🌟 NUEVO 2: Estado de autenticación que empieza en "Cargando"
+
     private val _authState = MutableStateFlow<AuthState>(AuthState.Cargando)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
@@ -45,20 +46,19 @@ class UsuarioViewModel(application: Application) : AndroidViewModel(application)
     var conteoProximidad by mutableLongStateOf(0L)
         private set
 
-    // --- 3. INICIALIZACIÓN ---
     init {
         val uid = FirebaseAuth.getInstance().currentUser?.uid
         if (uid != null) {
             cargarPerfilActual(uid)
         } else {
-            // 🌟 NUEVO 3: Si no hay UID en Firebase, no estamos logueados
+            // Si no hay UID en Firebase, no estamos logueados
             _authState.value = AuthState.NoAutenticado
         }
     }
 
-    // --- 4. FUNCIONES DE USUARIOS ---
+    //FUNCIONES DE USUARIOS
 
-    // ... (listarUsuarios, actualizarRol, eliminarUsuario se quedan exactamente igual) ...
+    // Función para listar usuarios
     fun listarUsuarios() {
         viewModelScope.launch {
             _isRefreshing.value = true
@@ -75,6 +75,7 @@ class UsuarioViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    // Función para actualizar rol
     fun actualizarRol(id: String, nuevoRol: Rol) {
         viewModelScope.launch {
             try {
@@ -90,7 +91,7 @@ class UsuarioViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
-
+    // Función para eliminar usuario
     fun eliminarUsuario(id: String) {
         viewModelScope.launch {
             try {
@@ -104,10 +105,10 @@ class UsuarioViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
-
+// Función para crear usuario
     fun cargarPerfilActual(uid: String) {
         viewModelScope.launch {
-            // 🌟 NUEVO 4: Avisamos a la UI de que estamos cargando datos
+            // Avisamos a la UI de que estamos cargando datos
             _authState.value = AuthState.Cargando
             try {
                 val response = apiService.obtenerUsuarioPorId(uid)
@@ -115,7 +116,6 @@ class UsuarioViewModel(application: Application) : AndroidViewModel(application)
                 if (response.isSuccessful && response.body() != null) {
                     val usuario = response.body()!!
                     _usuarioLogueado.value = usuario
-                    // 🌟 NUEVO 5: ¡Datos listos! Pasamos a estado Autenticado
                     _authState.value = AuthState.Autenticado(usuario)
                     Log.d("API_SUCCESS", "Perfil de ${usuario.nombre} cargado")
                 } else {
@@ -129,8 +129,9 @@ class UsuarioViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    // --- 5. ESTADÍSTICAS Y MAPA ---
-    // ... (cargarEstadisticas y cargarConteoProximidad se quedan igual) ...
+    // ESTADÍSTICAS Y MAPA
+
+    // Función para cargar estadísticas
     fun cargarEstadisticas() {
         viewModelScope.launch {
             try {
@@ -143,7 +144,7 @@ class UsuarioViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
-
+// Función para cargar conteo de proximidad
     fun cargarConteoProximidad(lat: Double, lng: Double, radio: Double) {
         viewModelScope.launch {
             try {
@@ -158,8 +159,8 @@ class UsuarioViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    // FUNCIONES DE LOGUEO
     fun limpiarSesion() {
-        // 🌟 NUEVO 6: Pasamos a cargando un microsegundo para tapar la caída de datos
         _authState.value = AuthState.Cargando
 
         _usuarioLogueado.value = null

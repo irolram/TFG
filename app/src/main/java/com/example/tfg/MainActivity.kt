@@ -59,13 +59,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // --- CONFIGURACIÓN MAPAS (OSMDROID) ---
+        // CONFIGURACIÓN MAPAS (OSMDROID)
         org.osmdroid.config.Configuration.getInstance().load(
             applicationContext,
             androidx.preference.PreferenceManager.getDefaultSharedPreferences(applicationContext)
         )
 
-        // --- PERMISOS DE NOTIFICACIONES ---
+        // PERMISOS DE NOTIFICACIONES
         val requestPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { isGranted: Boolean -> }
@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
             requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         }
 
-        // --- CONFIGURACIÓN DE WORKER (RIEGO) ---
+        // CONFIGURACIÓN DE WORKER (RIEGO)
         val request = PeriodicWorkRequestBuilder<RiegoWorker>(24, TimeUnit.HOURS)
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .build()
@@ -92,13 +92,13 @@ class MainActivity : ComponentActivity() {
             val auth = FirebaseAuth.getInstance()
             val currentUser = auth.currentUser
 
-            // --- INICIALIZACIÓN DE SERVICIOS ---
+            // INICIALIZACIÓN DE SERVICIOS
             val navController = rememberNavController()
             val context = LocalContext.current
             val tokenManager = remember { TokenManager(context) }
             val apiService = remember { RetrofitClient.getApiService(context) }
 
-            // --- FACTORIES PARA VIEWMODELS ---
+            // FACTORIES PARA VIEWMODELS
             val plantsFactory = object : ViewModelProvider.Factory {
                 override fun <T : ViewModel> create(modelClass: Class<T>): T = PlantaViewModel(apiService) as T
             }
@@ -145,7 +145,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-
+                        // RUTAS
                         composable("main_menuAdmin") {
                             PantallaPrincipalAdmin(
                                 navController = navController,
@@ -157,7 +157,6 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-
                         composable("main_menuMod") {
                             PantallaPrincipalMod(
                                 navController = navController,
@@ -221,7 +220,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // --- 🚩 BLOQUE 1: OBTENER TOKEN Y PEDIR PERFIL ---
+                // OBTENER TOKEN Y PEDIR PERFIL
                 LaunchedEffect(currentUser) {
                     if (currentUser != null) {
                         try {
@@ -232,7 +231,7 @@ class MainActivity : ComponentActivity() {
                                 val authData = response.body()
                                 if (authData != null) {
                                     tokenManager.saveToken(authData.accessToken, authData.userId)
-                                    // Pedimos los datos del usuario, pero NO cambiamos de pantalla todavía
+                                    // Pedimos los datos del usuario
                                     usuariosViewModel.cargarPerfilActual(authData.userId)
                                 }
                             } else {
@@ -248,7 +247,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // --- 🚩 BLOQUE 2: NAVEGAR SOLO CUANDO EL TEMA ESTÉ LISTO ---
+               
                 LaunchedEffect(usuarioActual) {
                     // Esperamos a que usuarioActual se cargue de internet
                     if (usuarioActual != null) {
