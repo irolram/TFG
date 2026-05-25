@@ -25,6 +25,7 @@ import com.example.tfg.data.model.Usuario
 import com.example.tfg.ui.components.RiegoWorker
 import kotlinx.coroutines.launch
 
+// Función que muestra el perfil del moderador
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun PerfilModScreen(
@@ -36,7 +37,6 @@ fun PerfilModScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // 🚩 OPTIMIZACIÓN: Usamos la paleta de colores del Tema actual (Mod = Teal)
     val colorPrimario = MaterialTheme.colorScheme.primary
     val colorAcento = MaterialTheme.colorScheme.secondary
 
@@ -45,7 +45,7 @@ fun PerfilModScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // --- CABECERA DINÁMICA ---
+        // CABECERA DINÁMICA
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -117,7 +117,7 @@ fun PerfilModScreen(
             }
         }
 
-        // --- PANEL DE HERRAMIENTAS ---
+        // PANEL DE HERRAMIENTAS
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -164,7 +164,7 @@ fun PerfilModScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // --- BOTÓN DE ESCANEO (DEMO) ---
+            // BOTÓN DE ESCANEO
             Button(
                 onClick = {
                     scope.launch {
@@ -186,7 +186,7 @@ fun PerfilModScreen(
                 Text("EJECUTAR ESCANEO DE RIEGO", fontWeight = FontWeight.Bold)
             }
 
-            // --- CERRAR SESIÓN ---
+            // CERRAR SESIÓN
             OutlinedButton(
                 onClick = onLogout,
                 modifier = Modifier

@@ -17,17 +17,13 @@ import retrofit2.http.*
 
 interface IApiService {
 
-    // ==========================================
-    // 🔐 AUTENTICACIÓN
-    // ==========================================
+    // AUTENTICACIÓN
 
     @POST("api/auth/login-app")
     suspend fun loginConServidor(@Body request: LoginRequest): Response<RespuestaAuth>
 
 
-    // ==========================================
-    // 👤 GESTIÓN DE USUARIOS (Perfil Propio y Admin)
-    // ==========================================
+    // GESTIÓN DE USUARIOS (Perfil Propio y Admin)
 
     // El usuario ve su propio perfil / El Admin ve el perfil de cualquiera
     @GET("api/usuarios/{id}")
@@ -54,9 +50,7 @@ interface IApiService {
     suspend fun eliminarUsuario(@Path("id") id: String): Response<Unit>
 
 
-    // ==========================================
-    // 🏡 GESTIÓN DE HUERTOS Y CULTIVOS
-    // ==========================================
+    // GESTIÓN DE HUERTOS Y CULTIVOS
 
     @GET("api/huertos")
     suspend fun obtenerHuertos(): Response<List<Huerto>>
@@ -84,9 +78,9 @@ interface IApiService {
     @PUT("api/huertos/{id}/regar")
     suspend fun registrarRiego(@Path("id") cultivoId: String): Response<Cultivo>
 
-    // ==========================================
-    // 🌿 CATÁLOGO DE PLANTAS
-    // ==========================================
+
+    // CATÁLOGO DE PLANTAS
+
 
     @GET("api/catalogo")
     suspend fun obtenerTodoElCatalogo(): Response<List<CatalogoDePlantas>>
@@ -112,9 +106,8 @@ interface IApiService {
         @Query("radio") radio: Double
     ): Response<Long>
 
-    // ==========================================
+
     // GESTOR DE TICKETS
-    // ==========================================
 
     @GET("api/tickets")
     suspend fun listarTickets(): Response<List<Ticket>>

@@ -18,12 +18,12 @@ import com.example.tfg.data.network.RetrofitClient
 import com.example.tfg.ui.components.ItemHuerto
 import com.example.tfg.viewModel.HuertosViewModel
 
+// Función que gestiona la pantalla de mis huertos
 @Composable
 fun MisHuertosScreen(navController: NavHostController, viewModel: HuertosViewModel) {
     val context = LocalContext.current
     val apiService = remember { RetrofitClient.getApiService(context) }
 
-    // 🚩 OPTIMIZACIÓN 1: Acceso correcto al estado unificado
     val state by viewModel.uiState
 
     var huertoABorrar by remember { mutableStateOf<Huerto?>(null) }
@@ -35,7 +35,7 @@ fun MisHuertosScreen(navController: NavHostController, viewModel: HuertosViewMod
         }
     }
 
-    // --- DIÁLOGO DE ELIMINACIÓN ---
+    // DIÁLOGO DE ELIMINACIÓN
     if (huertoABorrar != null) {
         AlertDialog(
             onDismissRequest = { huertoABorrar = null },
@@ -61,7 +61,7 @@ fun MisHuertosScreen(navController: NavHostController, viewModel: HuertosViewMod
         )
     }
 
-    // --- CONTENIDO PRINCIPAL ---
+    // CONTENIDO PRINCIPAL
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -69,7 +69,6 @@ fun MisHuertosScreen(navController: NavHostController, viewModel: HuertosViewMod
         contentAlignment = Alignment.Center
     ) {
         when {
-            // 🚩 OPTIMIZACIÓN 2: Lógica de estados basada en el objeto 'state'
             state.cargando && state.lista.isEmpty() -> {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }

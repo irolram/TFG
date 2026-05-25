@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.tfg.data.model.Usuario
 
+// Función que muestra el perfil del administrador
 @Composable
 fun PerfilAdminScreen(
     usuario: Usuario?,
@@ -25,10 +26,9 @@ fun PerfilAdminScreen(
     onDarkModeChange: (Boolean) -> Unit,
     onLogout: () -> Unit
 ) {
-    // 🚩 OPTIMIZACIÓN 1: Uso de tokens del sistema en lugar de Hardcoded Colors
-    // Esto asegura que si cambias el color primario en el Theme, todo cambie aquí también.
+
     val colorPrimario = MaterialTheme.colorScheme.primary
-    val colorAdmin = MaterialTheme.colorScheme.error // El rojo de error suele ser el mejor para Admin por contraste
+    val colorAdmin = MaterialTheme.colorScheme.error
 
     Column(
         modifier = Modifier
@@ -49,7 +49,7 @@ fun PerfilAdminScreen(
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Avatar con solapamiento corregido
+
             Surface(
                 modifier = Modifier
                     .size(100.dp)
@@ -82,7 +82,7 @@ fun PerfilAdminScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Badge Admin optimizado
+                // Badge Admin
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = colorAdmin.copy(alpha = 0.1f),
@@ -159,7 +159,7 @@ fun PerfilAdminScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Botón Logout mejorado
+            // Botón Logout
             Button(
                 onClick = onLogout,
                 modifier = Modifier

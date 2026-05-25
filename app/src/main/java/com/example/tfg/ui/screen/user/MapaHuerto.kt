@@ -12,24 +12,23 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 
+// Función que muestra el mapa de los huertos
 @Composable
 fun MapaHuertosScreen(huertos: List<Huerto>) {
     val context = LocalContext.current
 
-    // Configuración obligatoria de OSMDroid
     LaunchedEffect(Unit) {
         Configuration.getInstance().userAgentValue = context.packageName
     }
 
-    // Usamos AndroidView para meter el mapa clásico dentro de Jetpack Compose
     AndroidView(
         factory = { ctx ->
             MapView(ctx).apply {
-                // Configuramos el estilo del mapa
+                // Estilo del mapa
                 setTileSource(TileSourceFactory.MAPNIK)
                 setMultiTouchControls(true) // Permitir hacer zoom con los dedos
 
-                // Nivel de zoom inicial (12.0 es ideal para ver una ciudad entera)
+                // Nivel de zoom inicial
                 controller.setZoom(12.0)
 
                 // Buscamos si hay algún huerto para centrar el mapa ahí
@@ -41,7 +40,7 @@ fun MapaHuertosScreen(huertos: List<Huerto>) {
                 }
                 controller.setCenter(puntoCentral)
 
-                // Recorremos tu lista de huertos y ponemos una chincheta en cada uno
+                // Recorremos la lista de huertos y ponemos una chincheta en cada uno
                 huertos.forEach { huerto ->
                     if (huerto.latitud != 0.0 && huerto.longitud != 0.0) {
                         val marker = Marker(this)

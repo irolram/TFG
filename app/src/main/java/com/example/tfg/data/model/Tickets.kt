@@ -1,5 +1,7 @@
 package com.example.tfg.data.model
 
+// Clase para representar los tipos y estados de tickets
+
 enum class TipoTicket { ERROR, SUGERENCIA, OTRO }
 enum class EstadoTicket { ABIERTO, CERRADO }
 

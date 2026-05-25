@@ -21,7 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.tfg.viewModel.PlantaViewModel
-
+// Función que gestiona la pantalla de búsqueda de plantas
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BuscarCultivoScreen(
@@ -39,7 +39,7 @@ fun BuscarCultivoScreen(
     var plantaSeleccionada by remember { mutableStateOf<com.example.tfg.data.model.CatalogoDePlantas?>(null) }
     var apodoTexto by remember { mutableStateOf("") }
 
-    // --- DIÁLOGO DE PERSONALIZACIÓN ---
+    // DIÁLOGO DE PERSONALIZACIÓN
     if (mostrarDialogo && plantaSeleccionada != null) {
         AlertDialog(
             onDismissRequest = { mostrarDialogo = false },
@@ -62,7 +62,6 @@ fun BuscarCultivoScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        // 🚩 Llamamos al ViewModel pasando el apodo
                         viewModel.guardarPlantaEnHuerto(huertoId, plantaSeleccionada!!, apodoTexto) {
                             onCultivoGuardado()
                         }
@@ -164,6 +163,7 @@ fun BuscarCultivoScreen(
     }
 }
 
+// Función que muestra un item de planta del catálogo
 @Composable
 fun ItemPlantaCatalogo(planta: com.example.tfg.data.model.CatalogoDePlantas, onClick: () -> Unit) {
     Card(

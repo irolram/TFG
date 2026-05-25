@@ -20,6 +20,8 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
+
+// Función para seleccionar la ubicación en el mapa
 @Composable
 fun MapaSelectorUbicacion(
     latitudActual: Double,
@@ -29,9 +31,6 @@ fun MapaSelectorUbicacion(
 ) {
     val context = LocalContext.current
 
-    // 🚩 OPTIMIZACIÓN 1: No necesitamos el marcador en un estado de Compose.
-    // Es mejor que el Mapa sea el que gestione sus propios objetos visuales
-    // para evitar desfases entre el estado de Compose y la vista de Android.
 
     Box(modifier = Modifier.fillMaxWidth().height(300.dp).clipToBounds()) {
         AndroidView(
@@ -50,8 +49,7 @@ fun MapaSelectorUbicacion(
                     val puntoInicial = GeoPoint(36.5283, -6.1901)
                     controller.setCenter(puntoInicial)
 
-                    // 🚩 OPTIMIZACIÓN 2: Gestión de gestos mejorada
-                    // Esto evita que al mover el mapa se haga scroll en la pantalla principal
+
                     setOnTouchListener { view, event ->
                         when (event.action) {
                             MotionEvent.ACTION_DOWN -> view.parent?.requestDisallowInterceptTouchEvent(true)
@@ -60,11 +58,8 @@ fun MapaSelectorUbicacion(
                         false
                     }
 
-                    // 🚩 OPTIMIZACIÓN 3: El receptor de clics se queda fijo aquí
                     val eventsOverlay = MapEventsOverlay(object : MapEventsReceiver {
                         override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
-                            // En lugar de manejar el marcador aquí, llamamos al callback.
-                            // La lógica de "dibujar" el marcador la centralizamos en el 'update'.
                             onUbicacionSeleccionada(p.latitude, p.longitude)
                             return true
                         }
@@ -74,16 +69,15 @@ fun MapaSelectorUbicacion(
                 }
             },
             update = { vistaMapa ->
-                // 🚩 OPTIMIZACIÓN 4: Sincronización limpia del estado
                 if (latitudActual != 0.0 && longitudActual != 0.0) {
                     val punto = GeoPoint(latitudActual, longitudActual)
 
-                    // Solo animamos si el mapa no está ya centrado ahí (evita bucles de animación)
+                    // Solo animamos si el mapa no está ya centrado ahí
                     if (vistaMapa.mapCenter.latitude != punto.latitude) {
                         vistaMapa.controller.animateTo(punto)
                     }
 
-                    // Limpiamos SOLO los marcadores previos para no borrar la capa de eventos
+                    // Limpiamos solo los marcadores previos para no borrar la capa de eventos
                     vistaMapa.overlays.removeAll { it is Marker }
 
                     val nuevoMarcador = Marker(vistaMapa).apply {
@@ -99,7 +93,7 @@ fun MapaSelectorUbicacion(
                     }
 
                     vistaMapa.overlays.add(nuevoMarcador)
-                    vistaMapa.invalidate() // Forzamos el redibujado
+                    vistaMapa.invalidate()
                 }
             },
             modifier = Modifier.fillMaxSize()

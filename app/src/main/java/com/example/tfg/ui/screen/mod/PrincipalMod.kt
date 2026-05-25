@@ -1,5 +1,7 @@
 package com.example.tfg.ui.screen.mod
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -20,6 +22,8 @@ import com.example.tfg.viewModel.TicketViewModel
 import com.example.tfg.viewModel.UsuarioViewModel
 import com.google.firebase.auth.FirebaseAuth
 
+// Función que muestra la pantalla principal del moderador
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaPrincipalMod(
@@ -36,7 +40,7 @@ fun PantallaPrincipalMod(
     val miId = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
     val apiService = remember { RetrofitClient.getApiService(context) }
 
-    // --- OBSERVACIÓN DE ESTADOS ---
+
     val usuarioLogueado by usuarioViewModel.usuarioLogueado.collectAsState()
     val listaUsuarios by usuarioViewModel.listaUsuarios.collectAsState()
     val stateHuertos by huertosViewModel.uiState // 🚩 Usamos el state completo
@@ -45,17 +49,14 @@ fun PantallaPrincipalMod(
     val isRefreshingTickets by ticketViewModel.isRefreshing.collectAsState()
     val isRefreshingUsuarios by usuarioViewModel.isRefreshing.collectAsState()
 
-    // 🚩 1. CARGA DE PERFIL (Solo al arrancar)
     LaunchedEffect(Unit) {
         if (usuarioLogueado == null && miId.isNotEmpty()) {
             usuarioViewModel.cargarPerfilActual(miId)
         }
-        // Aprovechamos para cargar los huertos también al inicio
         huertosViewModel.obtenerTodosLosHuertos(apiService)
     }
 
-    // 🚩 2. CARGA DINÁMICA DE TICKETS Y USUARIOS
-    // Esto se dispara cada vez que cambias de pestaña
+
     LaunchedEffect(selectedItem) {
         when (selectedItem) {
             2 -> { // Pestaña de Tickets

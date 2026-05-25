@@ -15,6 +15,7 @@ import androidx.navigation.NavHostController
 import com.example.tfg.data.model.TipoTicket
 import com.example.tfg.viewModel.TicketViewModel
 
+//Pantalla de envío de ticket
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnviarTicketScreen(
@@ -43,7 +44,6 @@ fun EnviarTicketScreen(
                         )
                     }
                 },
-                // 🚩 OPTIMIZACIÓN: Colores vinculados al Rol actual
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -65,12 +65,10 @@ fun EnviarTicketScreen(
                 fontWeight = FontWeight.Bold
             )
 
-            // Selector de tipo de ticket con Chips de Material 3
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Usamos .entries en lugar de .values() (estándar moderno de Kotlin)
                 TipoTicket.entries.forEach { tipo ->
                     FilterChip(
                         selected = tipoSeleccionado == tipo,
@@ -105,7 +103,7 @@ fun EnviarTicketScreen(
 
             Spacer(Modifier.weight(1f))
 
-            // 🚩 BOTÓN DINÁMICO
+            // BOTÓN DINÁMICO
             Button(
                 onClick = {
                     viewModel.enviarTicket(asunto, descripcion, usuario, tipoSeleccionado)

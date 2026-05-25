@@ -15,15 +15,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.tfg.data.model.ModAction
 import com.example.tfg.data.model.Rol
 import com.example.tfg.data.model.Usuario
 
-// 🚩 OPTIMIZACIÓN 1: Estado sellado para acciones de moderación
-sealed class ModAction {
-    data object None : ModAction()
-    data class ConfirmPromote(val usuario: Usuario) : ModAction()
-}
 
+// Función que gestiona la pantalla de gestión del moderador
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GestionUsuariosModScreen(
@@ -32,15 +29,13 @@ fun GestionUsuariosModScreen(
     onRefresh: () -> Unit,
     onPromocionarAMod: (String) -> Unit
 ) {
-    // Estado de acción único
     var accionPendiente by remember { mutableStateOf<ModAction>(ModAction.None) }
 
-    // Filtrado eficiente de candidatos (Solo USERs)
+    // Filtrado de candidatos (Solo USERs)
     val candidatos = remember(listaUsuarios) {
         listaUsuarios.filter { it.rol == Rol.USER }
     }
 
-    // 🚩 OPTIMIZACIÓN 2: Diálogo centralizado
     if (accionPendiente is ModAction.ConfirmPromote) {
         val usuario = (accionPendiente as ModAction.ConfirmPromote).usuario
         AlertDialog(
@@ -64,7 +59,6 @@ fun GestionUsuariosModScreen(
 
     Scaffold(
         topBar = {
-            // Cabecera que usa el color Teal del tema de Moderador automáticamente
             Surface(color = MaterialTheme.colorScheme.primary, shadowElevation = 4.dp) {
                 Column(modifier = Modifier.fillMaxWidth().padding(20.dp).statusBarsPadding()) {
                     Text("RECLUTAMIENTO", style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.ExtraBold)
@@ -88,7 +82,6 @@ fun GestionUsuariosModScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // 🚩 OPTIMIZACIÓN 3: Claves únicas para mejor rendimiento en listas
                     items(candidatos, key = { it.id }) { usuario ->
                         CandidatoItem(
                             usuario = usuario,
@@ -101,6 +94,7 @@ fun GestionUsuariosModScreen(
     }
 }
 
+//Función que muestra el candidato
 @Composable
 fun CandidatoItem(usuario: Usuario, onPromoteClick: () -> Unit) {
     Card(

@@ -27,7 +27,7 @@ fun PerfilScreen(
     onDarkModeChange: (Boolean) -> Unit,
     onLogout: () -> Unit,
     onNavigateToSupport: () -> Unit) {
-    // Usamos el verde de tu marca EcoDrop
+
     val verdeEco = Color(0xFF4CAF50)
 
     Column(
@@ -35,7 +35,6 @@ fun PerfilScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // 1️⃣ LA FRANJA VERDE (Solo el borde de arriba)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -43,18 +42,18 @@ fun PerfilScreen(
                 .background(verdeEco)
         )
 
-        // 2️⃣ INFO DEL USUARIO (Solapada y fuera del verde)
+        // INFO DEL USUARIO )
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Avatar con borde para que destaque sobre el verde
+
             Surface(
                 modifier = Modifier
                     .size(100.dp)
-                    .offset(y = (-50).dp), // Lo subimos la mitad de su tamaño
+                    .offset(y = (-50).dp),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surface,
                 border = BorderStroke(4.dp, MaterialTheme.colorScheme.background),
@@ -70,7 +69,7 @@ fun PerfilScreen(
                 }
             }
 
-            // Nombre y Apellido (Ya sobre el fondo normal de la app)
+            // NOMBRE Y APELLIDO
             Text(
                 text = if (usuario != null) "${usuario.nombre} ${usuario.apellidos ?: ""}" else "Cargando...",
                 style = MaterialTheme.typography.headlineSmall,
@@ -88,12 +87,12 @@ fun PerfilScreen(
             }
         }
 
-        // 3️⃣ LISTA DE OPCIONES (Cuerpo de la pantalla)
+        //  LISTA DE OPCIONES
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
-                .offset(y = (-20).dp) // Subimos un poco para compensar huecos
+                .offset(y = (-20).dp)
         ) {
             Text(
                 text = "Ajustes de cuenta",
@@ -132,7 +131,7 @@ fun PerfilScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Botón Logout
+            // BOTÓN LOGOUT
             OutlinedButton(
                 onClick = onLogout,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),

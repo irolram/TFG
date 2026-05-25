@@ -57,9 +57,9 @@ class PlantaViewModel(private val apiService: IApiService) : ViewModel() {
 
     fun regarPlanta(
         cultivoId: String,
-        apiService: IApiService, // (O el nombre que tenga tu interfaz de Retrofit)
-        onSuccess: () -> Unit,  // 🌟 Callback de éxito
-        onError: () -> Unit     // 🌟 Callback de error
+        apiService: IApiService,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
     ) {
         viewModelScope.launch {
             try {
@@ -70,11 +70,11 @@ class PlantaViewModel(private val apiService: IApiService) : ViewModel() {
                     onSuccess()
                 } else {
                     // Si devuelve error (ej. 404), avisamos del fallo
-                    onError()
+                    onError("Error en el servidor: ${response.code()}")
                 }
             } catch (e: Exception) {
                 // Si no hay internet o se cae la red
-                onError()
+                onError(e.localizedMessage ?: "Fallo de conexión a internet")
             }
         }
     }

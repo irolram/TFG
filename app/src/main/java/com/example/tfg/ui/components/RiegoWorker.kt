@@ -17,6 +17,7 @@ import com.example.tfg.data.model.Cultivo
 import com.example.tfg.data.model.Riego // 🚩 IMPORTANTE: Cambia esto a la ruta real de tu Enum si es diferente
 import kotlinx.coroutines.*
 
+// Clase para el worker de riego
 class RiegoWorker(appContext: Context, workerParams: WorkerParameters) :
     CoroutineWorker(appContext, workerParams) {
 
@@ -30,6 +31,7 @@ class RiegoWorker(appContext: Context, workerParams: WorkerParameters) :
         private const val GROUP_KEY = "com.example.tfg.RIEGO_GROUP"
         private const val SUMMARY_ID = 999
 
+        // Función que lanza la notificación demo en tiempo real
         @RequiresApi(Build.VERSION_CODES.O)
         suspend fun lanzarNotificacionDemoRealista(context: Context) {
             withContext(Dispatchers.IO) {
@@ -37,6 +39,7 @@ class RiegoWorker(appContext: Context, workerParams: WorkerParameters) :
             }
         }
 
+        // Función que ejecuta el escaneo de riego
         @RequiresApi(Build.VERSION_CODES.O)
         private suspend fun ejecutarEscaneo(context: Context): Result = coroutineScope {
             val apiService = RetrofitClient.getApiService(context)

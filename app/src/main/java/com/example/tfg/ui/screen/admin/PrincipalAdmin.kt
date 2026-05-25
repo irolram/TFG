@@ -21,7 +21,7 @@ import com.example.tfg.data.model.RolData
 import com.example.tfg.viewModel.UsuarioViewModel
 import com.google.firebase.auth.FirebaseAuth
 
-
+// Función que muestra la pantalla principal del administrador
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaPrincipalAdmin(
@@ -38,18 +38,14 @@ fun PantallaPrincipalAdmin(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val listaUsuarios by viewModel.listaUsuarios.collectAsState()
 
-    // 🚩 OPTIMIZACIÓN 1: Obtener ID de Firebase de forma directa
     val miIdActual = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
 
-    // 🚩 OPTIMIZACIÓN 2: Carga de arranque (Bootstrap)
-    // Este LaunchedEffect se ejecuta una sola vez al entrar el Admin
     LaunchedEffect(Unit) {
         if (usuarioLogueado == null && miIdActual.isNotEmpty()) {
             viewModel.cargarPerfilActual(miIdActual)
         }
     }
 
-    // Carga de datos según la pestaña activa
     LaunchedEffect(selectedItem) {
         when (selectedItem) {
             0 -> viewModel.cargarEstadisticas()
@@ -128,6 +124,7 @@ fun PantallaPrincipalAdmin(
     }
 }
 
+// Función que muestra el contenido del panel de control del administrador
 @Composable
 fun DashboardAdminContent(viewModel: UsuarioViewModel) {
     val stats by viewModel.stats.collectAsState()
@@ -206,6 +203,7 @@ fun DashboardAdminContent(viewModel: UsuarioViewModel) {
     }
 }
 
+//Función que muestra la tarjeta de estadísticas
 @Composable
 fun EstadisticaCard(
     titulo: String,
@@ -240,6 +238,7 @@ fun EstadisticaCard(
     }
 }
 
+// Función que muestra el grafico de distribución de roles
 @Composable
 fun GraficoDistribucionRoles(datos: List<RolData>) {
     val maxValor = datos.maxOfOrNull { it.cantidad }?.toFloat() ?: 1f

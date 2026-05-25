@@ -22,10 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.example.tfg.data.model.CatalogoDePlantas
 import com.example.tfg.data.model.Huerto
 
-/**
- * OPTIMIZACIÓN 1: Eliminamos el Card innecesario.
- * OutlinedTextField ya tiene soporte para fondo y forma. Menos capas = más rápido.
- */
+// Función reutilizable para los campos de texto
 @Composable
 fun HuertoTextField(
     value: String,
@@ -52,23 +49,12 @@ fun HuertoTextField(
     )
 }
 
-@Composable
-fun SectionTitle(title: String) {
-    Text(
-        text = " $title",
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(bottom = 8.dp)
-    )
-}
-
+// Función reutilizable para la ficha tecnica de cada planta
 @Composable
 fun FichaTecnicaSimple(planta: CatalogoDePlantas) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        // Usamos el color secundario del tema suavizado
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
         )
@@ -100,6 +86,7 @@ fun FichaTecnicaSimple(planta: CatalogoDePlantas) {
     }
 }
 
+// Función reutilizable para los items de la ficha tecnica
 @Composable
 fun InfoItem(label: String, valor: String, icon: ImageVector) {
     Row(
@@ -124,10 +111,7 @@ fun InfoItem(label: String, valor: String, icon: ImageVector) {
     }
 }
 
-/**
- * OPTIMIZACIÓN 3: Refactorización de ItemHuerto.
- * Simplificamos el SwipeToDismiss para que sea más legible.
- */
+// Función reutilizable para el huerto
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemHuerto(huerto: Huerto, onClick: () -> Unit, onDeleteClick: () -> Unit) {
@@ -192,6 +176,7 @@ fun ItemHuerto(huerto: Huerto, onClick: () -> Unit, onDeleteClick: () -> Unit) {
     )
 }
 
+// Función reutilizable para formatear la fecha
 fun formatTimestamp(timestamp: Long?): String {
     if (timestamp == null || timestamp == 0L) return "Sin fecha"
 

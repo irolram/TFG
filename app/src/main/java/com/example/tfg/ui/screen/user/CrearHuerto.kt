@@ -28,6 +28,7 @@ import com.example.tfg.data.network.RetrofitClient
 import com.example.tfg.viewModel.HuertosViewModel
 import com.google.android.gms.location.LocationServices
 
+// Función que gestiona la pantalla de creación de huertos
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewModel) {
@@ -37,7 +38,6 @@ fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewMo
     val apiService = remember { RetrofitClient.getApiService(context) }
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
-    // Estados locales del formulario
     var nombre by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
     var latitud by remember { mutableDoubleStateOf(0.0) }
@@ -45,7 +45,6 @@ fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewMo
     var ubicacionCapturada by remember { mutableStateOf(false) }
     var modoGpsActivo by remember { mutableStateOf(false) }
 
-    // Lanzador de permisos de ubicación
     val permisoLanzador = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permisos ->
@@ -56,7 +55,7 @@ fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewMo
         }
     }
 
-    // Navegación automática si se guarda bien
+    // Navegación automática a la pantalla anterior
     LaunchedEffect(state.operacionExitosa) {
         if (state.operacionExitosa) {
             navController.popBackStack()
@@ -89,7 +88,6 @@ fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewMo
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // --- BLOQUE 1: DATOS ---
             Text("Detalles del Huerto", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
 
             OutlinedTextField(
@@ -111,7 +109,7 @@ fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewMo
 
             HorizontalDivider()
 
-            // --- GPS ---
+            // GPS
             Text("Localización", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
 
             Button(
@@ -145,7 +143,6 @@ fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewMo
                 Text(if (modoGpsActivo) "📍 Ubicación fijada" else "📍 Usar mi posición GPS")
             }
 
-            // Aquí va tu componente de Mapa
             Box(modifier = Modifier.height(240.dp).fillMaxWidth()) {
                 MapaSelectorUbicacion(latitud, longitud, modoGpsActivo) { lat, lon ->
                     latitud = lat
@@ -157,10 +154,8 @@ fun CrearHuertoScreen(navController: NavHostController, viewModel: HuertosViewMo
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- BLOQUE 3: GUARDAR ---
             Button(
                 onClick = {
-                    // 🚩 Llamamos a la función optimizada del ViewModel
                     viewModel.crearNuevoHuerto(apiService, nombre, descripcion, latitud, longitud)
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),

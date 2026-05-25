@@ -21,20 +21,13 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.tfg.data.TokenManager
 import com.example.tfg.data.model.LoginRequest
-import com.example.tfg.data.model.Rol
 import com.example.tfg.data.network.RetrofitClient
 import com.example.tfg.ui.components.HuertoTextField
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-// Reutilizamos la paleta de colores del huerto
-val VerdeFondoInicio = Color(0xFFE8F5E9)
-val VerdeFondoFin = Color(0xFFC8E6C9)
-val VerdePrimario = Color(0xFF2E7D32)
-val VerdeSecundario = Color(0xFF43A047)
-val ColorTierra = Color(0xFF795548)
-
+// Pantalla de inicio de sesión
 @Composable
 fun LoginEcoDropScreen(navController: NavHostController) {
     val auth = remember { FirebaseAuth.getInstance() }
@@ -54,7 +47,10 @@ fun LoginEcoDropScreen(navController: NavHostController) {
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(VerdeFondoInicio, VerdeFondoFin)
+                    colors = listOf(
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                    )
                 )
             )
     ) {
@@ -68,14 +64,14 @@ fun LoginEcoDropScreen(navController: NavHostController) {
             // Título estilizado
             Text(
                 text = "ECO DROP",
-                color = VerdePrimario,
+                color = MaterialTheme.colorScheme.primary,
                 fontSize = 48.sp,
                 fontWeight = FontWeight.ExtraBold,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             Text(
                 text = "Tu huerto en la palma de tu mano",
-                color = ColorTierra,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f), // 🚩 Conectado al tema
                 fontSize = 16.sp,
                 modifier = Modifier.padding(bottom = 48.dp)
             )
@@ -103,14 +99,14 @@ fun LoginEcoDropScreen(navController: NavHostController) {
             errorMessage?.let {
                 Text(
                     text = it,
-                    color = Color.Red,
+                    color = MaterialTheme.colorScheme.error, // 🚩 Usa el color de error por defecto
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
             }
 
             if (isLoading) {
-                CircularProgressIndicator(color = VerdePrimario)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             } else {
                 Button(
                     onClick = {
@@ -171,21 +167,25 @@ fun LoginEcoDropScreen(navController: NavHostController) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(60.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = VerdePrimario),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(16.dp),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                 ) {
-                    Text("Entrar al Huerto", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text("Entrar al Huerto", color = MaterialTheme.colorScheme.onPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
             Spacer(modifier = Modifier.height(40.dp))
 
             Row {
-                Text(text = "¿No tienes cuenta? ", color = ColorTierra, fontSize = 14.sp)
+                Text(
+                    text = "¿No tienes cuenta? ",
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    fontSize = 14.sp
+                )
                 Text(
                     text = "Regístrate aquí",
-                    color = VerdeSecundario,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                     modifier = Modifier.clickable { navController.navigate("register") }

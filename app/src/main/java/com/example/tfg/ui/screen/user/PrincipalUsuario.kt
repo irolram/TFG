@@ -18,6 +18,7 @@ import com.example.tfg.viewModel.HuertosViewModel
 import com.example.tfg.viewModel.UsuarioViewModel
 import com.google.firebase.auth.FirebaseAuth
 
+// Pantalla principal del usuario
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaPrincipalUser(
@@ -44,7 +45,6 @@ fun PantallaPrincipalUser(
     val colorPrimario = MaterialTheme.colorScheme.primary
     val colorOnPrimario = MaterialTheme.colorScheme.onPrimary
 
-    // 🚩 CARGA PROACTIVA: Perfil y Huertos (para tener pings en el mapa)
     LaunchedEffect(Unit) {
         if (miId.isNotEmpty()) {
             if (usuario == null) usuariosViewModel.cargarPerfilActual(miId)

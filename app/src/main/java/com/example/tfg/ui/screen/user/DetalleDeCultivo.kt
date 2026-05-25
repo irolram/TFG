@@ -10,7 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.WaterDrop // 🚩 Nuevo icono importado
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +29,7 @@ import com.example.tfg.ui.components.FichaTecnicaSimple
 import com.example.tfg.viewModel.HuertosViewModel
 import com.example.tfg.viewModel.PlantaViewModel
 
+// Función que gestiona la pantalla de detalle de cultivos
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetalleCultivoScreen(
@@ -85,7 +86,7 @@ fun DetalleCultivoScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp)
             ) {
-                // --- CABECERA ---
+                // CABECERA
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -98,6 +99,7 @@ fun DetalleCultivoScreen(
                         AsyncImage(
                             model = detalleEspecie?.icono?.trim(),
                             contentDescription = null,
+                            contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(100.dp)
                                 .clip(RoundedCornerShape(16.dp))
@@ -129,15 +131,22 @@ fun DetalleCultivoScreen(
 
                 Spacer(Modifier.height(24.dp))
 
-                // 🌟 --- BOTÓN DE REGAR --- 🌟
+                // BOTÓN DE REGAR
                 Button(
                     onClick = {
-                        // Llamamos a la función de tu ViewModel para avisar a Spring Boot
-                        viewModelPlanta.regarPlanta(miCultivo.id.toString(),apiService)
+                        viewModelPlanta.regarPlanta(
+                            miCultivo.id.toString(), apiService,
+                            onSuccess = {
+                                Toast.makeText(context, "Planta regada con éxito", Toast.LENGTH_SHORT).show()
+                            },
+                            onError = { mensajeError ->
+                                Toast.makeText(context, "Error al regar: $mensajeError", Toast.LENGTH_LONG).show()
+                            }
+                        )
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp), // Un poco más alto para que sea fácil de pulsar
+                        .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
@@ -158,7 +167,7 @@ fun DetalleCultivoScreen(
 
                 Spacer(Modifier.height(32.dp))
 
-                // --- FICHA TÉCNICA ---
+                // FICHA TÉCNICA
                 SectionTitle(title = "Guía técnica de la especie")
 
                 if (detalleEspecie != null) {
@@ -167,7 +176,7 @@ fun DetalleCultivoScreen(
 
                 Spacer(Modifier.height(24.dp))
 
-                // --- CONSEJOS ---
+                // CONSEJOS
                 SectionTitle(title = "Consejos de cultivo")
 
                 Card(
@@ -194,6 +203,7 @@ fun DetalleCultivoScreen(
     }
 }
 
+// Función que muestra un título de sección
 @Composable
 fun SectionTitle(title: String) {
     Text(

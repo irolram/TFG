@@ -27,13 +27,7 @@ import com.example.tfg.ui.components.HuertoTextField
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-// Paleta de colores temáticos para el huerto
-val VerdeFondoInicio = Color(0xFFE8F5E9)
-val VerdeFondoFin = Color(0xFFC8E6C9)
-val VerdePrimario = Color(0xFF2E7D32)
-val VerdeSecundario = Color(0xFF43A047)
-val ColorTierra = Color(0xFF795548)
-
+// Pantalla de registro
 @Composable
 fun RegisterScreen(navController: NavController) {
     val scope = rememberCoroutineScope()
@@ -57,7 +51,10 @@ fun RegisterScreen(navController: NavController) {
                 .padding(paddingValues)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(VerdeFondoInicio, VerdeFondoFin)
+                        colors = listOf(
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        )
                     )
                 )
         ) {
@@ -71,19 +68,18 @@ fun RegisterScreen(navController: NavController) {
                 // Título temático
                 Text(
                     "¡Crea tu Huerto!",
-                    color = VerdePrimario,
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 32.sp,
                     fontWeight = FontWeight.ExtraBold,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
                 Text(
                     "Regístrate para empezar a cultivar",
-                    color = ColorTierra,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     fontSize = 16.sp,
                     modifier = Modifier.padding(bottom = 32.dp)
                 )
 
-                // Campos de registro con iconos y estilo Material Design 3
                 HuertoTextField(
                     value = nombre,
                     onValueChange = { nombre = it },
@@ -125,16 +121,19 @@ fun RegisterScreen(navController: NavController) {
                     isPassword = true
                 )
 
-                // Mensaje de error estilizado
                 errorMsg?.let {
-                    Text(it, color = Color.Red, fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = 12.dp))
+                    Text(
+                        it,
+                        color = MaterialTheme.colorScheme.error, // 🚩 Usa el color de error del tema
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(top = 12.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(48.dp))
 
-                // Botón principal estilizado
                 if (isLoading) {
-                    CircularProgressIndicator(color = VerdePrimario)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 } else {
                     Button(
                         onClick = {
@@ -171,15 +170,14 @@ fun RegisterScreen(navController: NavController) {
                                                 // 3. GUARDAMOS EL TOKEN
                                                 tokenManager.saveToken(authData.accessToken, authData.userId)
 
-                                                // 4. ACTUALIZAMOS EL PERFIL (Le ponemos el nombre real en vez del genérico)
+                                                // 4. ACTUALIZAMOS EL PERFIL
                                                 val usuarioActualizado = Usuario(
                                                     id = uid,
                                                     nombre = nombre,
                                                     apellidos = apellidos,
                                                     email = correo,
-                                                    rol = Rol.USER // O el rol que devuelva authData
+                                                    rol = Rol.USER
                                                 )
-                                                // Esta llamada ya lleva el token gracias al AuthInterceptor
                                                 RetrofitClient.getApiService(context).actualizarUsuario(uid, usuarioActualizado)
 
                                                 navController.navigate("main_menuUser") {
@@ -204,22 +202,30 @@ fun RegisterScreen(navController: NavController) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(64.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = VerdePrimario),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary), // 🚩 Conectado al tema
                         shape = RoundedCornerShape(16.dp),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
                     ) {
-                        Text("Empezar a Cultivar", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Empezar a Cultivar",
+                            color = MaterialTheme.colorScheme.onPrimary, // 🚩 Conectado al tema
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Texto de login estilizado
                 Row {
-                    Text("¿Ya tienes un huerto? ", color = ColorTierra, fontSize = 14.sp)
+                    Text(
+                        "¿Ya tienes un huerto? ",
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                        fontSize = 14.sp
+                    )
                     Text(
                         "Inicia sesión",
-                        color = VerdeSecundario,
+                        color = MaterialTheme.colorScheme.primary, // 🚩 Conectado al tema
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         modifier = Modifier.clickable { navController.popBackStack() }

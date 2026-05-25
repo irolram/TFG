@@ -17,14 +17,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tfg.data.model.Ticket
+import com.example.tfg.data.model.TicketAction
 import com.example.tfg.data.model.TipoTicket
 
-// 🚩 OPTIMIZACIÓN 1: Estado sellado para acciones del moderador
-sealed class TicketAction {
-    data object None : TicketAction()
-    data class ConfirmResolve(val ticket: Ticket) : TicketAction()
-}
-
+// Función que gestiona la pantalla de gestión de tickets
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GestionTicketsScreen(
@@ -35,7 +31,6 @@ fun GestionTicketsScreen(
 ) {
     var actionPendiente by remember { mutableStateOf<TicketAction>(TicketAction.None) }
 
-    // 🚩 OPTIMIZACIÓN 2: Diálogo de confirmación (Seguridad de estado)
     if (actionPendiente is TicketAction.ConfirmResolve) {
         val ticket = (actionPendiente as TicketAction.ConfirmResolve).ticket
         AlertDialog(
@@ -58,7 +53,6 @@ fun GestionTicketsScreen(
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
 
-        // Cabecera que hereda el color Teal del Tema Mod
         Surface(color = MaterialTheme.colorScheme.primary, shadowElevation = 4.dp) {
             Column(modifier = Modifier.fillMaxWidth().padding(20.dp).statusBarsPadding()) {
                 Text(
@@ -93,7 +87,6 @@ fun GestionTicketsScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // 🚩 OPTIMIZACIÓN 3: Key única para mejorar el rendimiento del scroll
                     items(listaTickets, key = { it.id ?: "" }) { ticket ->
                         TicketItem(
                             ticket = ticket,
@@ -106,6 +99,7 @@ fun GestionTicketsScreen(
     }
 }
 
+// Función que muestra un ticket
 @Composable
 fun TicketItem(ticket: Ticket, onResolverClick: () -> Unit) {
     // Colores semánticos según el tipo

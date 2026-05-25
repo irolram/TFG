@@ -1,6 +1,5 @@
 package com.example.tfg.ui.screen.admin
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,16 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.tfg.data.model.AdminAction
 import com.example.tfg.data.model.Rol
 import com.example.tfg.data.model.Usuario
 
-// 🚩 OPTIMIZACIÓN 1: Usar un estado sellado para los diálogos
-// Evita tener 3 o 4 booleanos diferentes.
-sealed class AdminAction {
-    data object None : AdminAction()
-    data class ChangeRole(val usuario: Usuario, val nuevoRol: Rol) : AdminAction()
-    data class DeleteUser(val usuario: Usuario) : AdminAction()
-}
+// Función que gestiona la pantalla de gestión de administrador
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,10 +30,8 @@ fun GestionUsuariosAdminScreen(
     onCambiarRol: (String, Rol) -> Unit,
     onEliminarUsuario: (String) -> Unit
 ) {
-    // Estado único para acciones
     var accionPendiente by remember { mutableStateOf<AdminAction>(AdminAction.None) }
 
-    // 🚩 OPTIMIZACIÓN 2: Diálogos extraídos para no ensuciar el código principal
     when (val accion = accionPendiente) {
         is AdminAction.ChangeRole -> {
             AlertDialog(
@@ -102,7 +94,6 @@ fun GestionUsuariosAdminScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // 🚩 OPTIMIZACIÓN 3: Usar key para que LazyColumn sea más eficiente al mover/borrar
                     items(listaUsuarios, key = { it.id }) { usuario ->
                         UsuarioCard(
                             usuario = usuario,
@@ -118,7 +109,7 @@ fun GestionUsuariosAdminScreen(
     }
 }
 
-// 🚩 OPTIMIZACIÓN 4: Componente de tarjeta extraído
+//Función que muestra la tarjeta de usuario
 @Composable
 fun UsuarioCard(
     usuario: Usuario,

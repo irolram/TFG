@@ -18,9 +18,10 @@ import coil.compose.AsyncImage
 import com.example.tfg.data.model.RespuestaPrevision
 import com.example.tfg.data.network.WeatherClient
 
+// Función para mostrar el widget de clima
 @Composable
 fun WidgetClima(latitud: Double, longitud: Double) {
-    // 🚩 OPTIMIZACIÓN 1: Estados más limpios
+
     var datosClima by remember { mutableStateOf<RespuestaPrevision?>(null) }
     var cargando by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf(false) }
@@ -28,14 +29,11 @@ fun WidgetClima(latitud: Double, longitud: Double) {
 
     val apiKey = "8cbe46aee05331a0d8229a37daa15f61"
 
-    // 🚩 OPTIMIZACIÓN 2: Corregir el uso de Corrutinas
-    // LaunchedEffect ya es un scope de corrutina. No necesitas scope.launch dentro.
     LaunchedEffect(latitud, longitud, version) {
         if (latitud != 0.0 && longitud != 0.0) {
             cargando = true
             error = false
             try {
-                // Llamada directa suspendida
                 datosClima = WeatherClient.apiService.getPrevisionClima(
                     lat = latitud,
                     lon = longitud,
@@ -143,7 +141,7 @@ fun WidgetClima(latitud: Double, longitud: Double) {
         }
     }
 }
-
+// Función para mostrar la info del clima en un widget pequeño
 @Composable
 fun WeatherInfoMini(value: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
     Row(verticalAlignment = Alignment.CenterVertically) {

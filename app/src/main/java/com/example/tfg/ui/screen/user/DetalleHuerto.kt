@@ -31,6 +31,7 @@ import com.example.tfg.ui.components.WidgetClima
 import com.example.tfg.ui.components.formatTimestamp
 import com.example.tfg.viewModel.HuertosViewModel
 
+// Función que gestiona la pantalla de detalle del huerto
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetalleHuertoScreen(
@@ -42,7 +43,6 @@ fun DetalleHuertoScreen(
     val context = LocalContext.current
     val apiService = remember { RetrofitClient.getApiService(context) }
 
-    // 🛡️ Estado para el diálogo de borrado
     var idCultivoABorrar by remember { mutableStateOf<String?>(null) }
 
     val state by viewModel.uiState
@@ -159,7 +159,7 @@ fun DetalleHuertoScreen(
         }
     }
 
-    // 🌟 --- DIÁLOGO DE CONFIRMACIÓN PARA BORRAR PLANTA ---
+    // DIÁLOGO DE CONFIRMACIÓN PARA BORRAR PLANTA
     if (idCultivoABorrar != null) {
         AlertDialog(
             onDismissRequest = { idCultivoABorrar = null },
@@ -193,6 +193,7 @@ fun DetalleHuertoScreen(
     }
 }
 
+// Función que muestra un cultivo
 @Composable
 fun ItemCultivo(
     cultivo: com.example.tfg.data.model.Cultivo,

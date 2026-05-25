@@ -19,8 +19,14 @@ private val ModContainer = Color(0xFFB2DFDB)
 // ADMIN: Verde Bosque (Autoridad y profundidad)
 private val AdminPrimary = Color(0xFF1B5E20)
 private val AdminContainer = Color(0xFFA5D6A7)
+private val VerdeFondoInicio = Color(0xFFE8F5E9)
+private val VerdePrimario = Color(0xFF2E7D32)
+private val VerdeSecundario = Color(0xFF43A047)
+private val ColorTierra = Color(0xFF795548)
+
 
 // --- 2. GENERADOR DE SCHEMES ---
+
 
 @Composable
 fun TFGTheme(

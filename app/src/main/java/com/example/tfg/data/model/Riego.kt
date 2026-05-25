@@ -2,6 +2,7 @@ package com.example.tfg.data.model
 
 import com.google.gson.annotations.SerializedName
 
+// Enum class para representar el riego de un cultivo
 enum class Riego(val textoPantalla: String) {
     @SerializedName("ESCASO")
     ESCASO("Escaso"),

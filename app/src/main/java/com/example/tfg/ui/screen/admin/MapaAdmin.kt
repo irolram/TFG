@@ -19,19 +19,15 @@ import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polygon
 
+//Función que muestra el mapa del administrador
 @Composable
 fun MapaAdminScreen(viewModel: UsuarioViewModel) {
-    // 1. Estados locales para la UI del Mapa
     var puntoClickado by remember { mutableStateOf(GeoPoint(36.5297, -6.1465)) }
     var radioKm by remember { mutableFloatStateOf(50f) }
 
-    // 🚩 ESTRATEGIA PRO: Debouncing
-    // Este efecto se dispara cada vez que cambias el punto o el radio
     LaunchedEffect(puntoClickado, radioKm) {
-        // Esperamos medio segundo. Si el usuario sigue moviendo el slider,
-        // este bloque se cancela y vuelve a empezar, evitando saturar la API.
-        delay(500)
 
+        delay(500)
 
         android.util.Log.d("MAPA_DEBUG", "Llamando API: Lat=${puntoClickado.latitude}, Radio=${radioKm * 1000}m")
 
@@ -44,7 +40,7 @@ fun MapaAdminScreen(viewModel: UsuarioViewModel) {
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // --- MAPA ---
+        // MAPA
         AndroidView(
             modifier = Modifier.weight(1f),
             factory = { ctx ->
@@ -88,7 +84,7 @@ fun MapaAdminScreen(viewModel: UsuarioViewModel) {
             }
         )
 
-        // --- PANEL DE CONTROL (Card inferior) ---
+        // PANEL DE CONTROL
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -106,7 +102,6 @@ fun MapaAdminScreen(viewModel: UsuarioViewModel) {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Resultado que viene del ViewModel
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "${viewModel.conteoProximidad}",
