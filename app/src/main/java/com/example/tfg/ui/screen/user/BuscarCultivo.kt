@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.tfg.viewModel.PlantaViewModel
+
 // Función que gestiona la pantalla de búsqueda de plantas
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +39,11 @@ fun BuscarCultivoScreen(
     var mostrarDialogo by remember { mutableStateOf(false) }
     var plantaSeleccionada by remember { mutableStateOf<com.example.tfg.data.model.CatalogoDePlantas?>(null) }
     var apodoTexto by remember { mutableStateOf("") }
+
+    // 🚩 AQUÍ ESTÁ LA MAGIA: Carga el catálogo completo al abrir la pantalla
+    LaunchedEffect(Unit) {
+        viewModel.cargarCatalogoInicial()
+    }
 
     // DIÁLOGO DE PERSONALIZACIÓN
     if (mostrarDialogo && plantaSeleccionada != null) {
@@ -151,9 +157,8 @@ fun BuscarCultivoScreen(
                     ItemPlantaCatalogo(
                         planta = planta,
                         onClick = {
-                            // 🚩 CAMBIO: En lugar de guardar, preparamos el diálogo
                             plantaSeleccionada = planta
-                            apodoTexto = "" // Limpiar el campo para la nueva planta
+                            apodoTexto = ""
                             mostrarDialogo = true
                         }
                     )
