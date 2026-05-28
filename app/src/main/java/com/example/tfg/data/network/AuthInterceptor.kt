@@ -8,20 +8,28 @@ import android.util.Log
 import kotlinx.coroutines.flow.first
 
 class AuthInterceptor(private val tokenManager: TokenManager) : Interceptor {
-    // Función que recibe una cadena de texto y devuelve una cadena de texto
+    // Función que intercepta las peticiones para inyectar el token
     override fun intercept(chain: Interceptor.Chain): Response {
-        // Variable para obtener el token
+        val request = chain.request()
+        val path = request.url.encodedPath
+
+        // 1. Excluir rutas públicas (Login y Registro)
+        // Ajusta los textos según cómo se llamen tus endpoints en Spring Boot
+        if (path.contains("login") || path.contains("registro") || path.contains("auth")) {
+            return chain.proceed(request)
+        }
+
+        // 2. Variable para obtener el token para el resto de peticiones
         val token = runBlocking {
             tokenManager.accessToken.first()
         }
 
-        Log.d("INTERCEPTOR_DEBUG", "Token a enviar: [$token]")
-
-        // Construimos la petición con el token
-        val requestBuilder = chain.request().newBuilder()
+        // Construimos la petición preparándola para modificaciones
+        val requestBuilder = request.newBuilder()
 
         // Si el token es distinto de nulo, lo añadimos a la petición
         if (!token.isNullOrBlank()) {
+            Log.d("INTERCEPTOR_DEBUG", "Token a enviar: [$token]")
             requestBuilder.addHeader("Authorization", "Bearer $token")
         } else {
             Log.e("INTERCEPTOR_DEBUG", "¡OJO! El token está vacío o es nulo")

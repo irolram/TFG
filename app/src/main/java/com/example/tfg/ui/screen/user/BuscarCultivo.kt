@@ -1,5 +1,6 @@
 package com.example.tfg.ui.screen.user
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,16 +13,21 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.tfg.data.model.CatalogoDePlantas
 import com.example.tfg.viewModel.PlantaViewModel
-// Función que gestiona la pantalla de búsqueda de plantas
+
+// Pantalla para buscar plantas en el catálogo y añadir una al huerto seleccionado.
+// Permite filtrar por texto, elegir una planta y personalizarla con un apodo antes de guardarla.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BuscarCultivoScreen(
@@ -30,28 +36,39 @@ fun BuscarCultivoScreen(
     onBack: () -> Unit,
     onCultivoGuardado: () -> Unit
 ) {
-    var textoBusqueda by remember { mutableStateOf("") }
+    var textoBusqueda by rememberSaveable { mutableStateOf("") }
+
     val resultados by viewModel.resultadosBusqueda
     val buscando by viewModel.buscando
     val error by viewModel.errorBusqueda
 
     var mostrarDialogo by remember { mutableStateOf(false) }
-    var plantaSeleccionada by remember { mutableStateOf<com.example.tfg.data.model.CatalogoDePlantas?>(null) }
-    var apodoTexto by remember { mutableStateOf("") }
+    var plantaSeleccionada by remember { mutableStateOf<CatalogoDePlantas?>(null) }
+    var apodoTexto by rememberSaveable { mutableStateOf("") }
 
-    // DIÁLOGO DE PERSONALIZACIÓN
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    // Diálogo para ponerle un nombre personalizado al cultivo antes de guardarlo.
     if (mostrarDialogo && plantaSeleccionada != null) {
         AlertDialog(
             onDismissRequest = { mostrarDialogo = false },
-            title = { Text("Personalizar cultivo", fontWeight = FontWeight.Bold) },
+            title = {
+                Text(
+                    text = "Personalizar cultivo",
+                    fontWeight = FontWeight.Bold
+                )
+            },
             text = {
                 Column {
                     Text("¿Qué nombre le quieres poner a tu ${plantaSeleccionada?.nombre}?")
+
                     Spacer(modifier = Modifier.height(12.dp))
+
                     OutlinedTextField(
                         value = apodoTexto,
                         onValueChange = { apodoTexto = it },
-                        label = { Text("Apodo (ej: La de la ventana)") },
+                        label = { Text("Apodo") },
                         placeholder = { Text(plantaSeleccionada?.nombre ?: "") },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
@@ -62,9 +79,16 @@ fun BuscarCultivoScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.guardarPlantaEnHuerto(huertoId, plantaSeleccionada!!, apodoTexto) {
-                            onCultivoGuardado()
+                        plantaSeleccionada?.let { planta ->
+                            viewModel.guardarPlantaEnHuerto(
+                                huertoId,
+                                planta,
+                                apodoTexto
+                            ) {
+                                onCultivoGuardado()
+                            }
                         }
+
                         mostrarDialogo = false
                     }
                 ) {
@@ -82,10 +106,19 @@ fun BuscarCultivoScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Añadir Cultivo", fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        text = "Añadir Cultivo",
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver"
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -100,10 +133,12 @@ fun BuscarCultivoScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 16.dp))
 
+            // Campo de búsqueda. Cada cambio llama al ViewModel para filtrar el catálogo.
             OutlinedTextField(
                 value = textoBusqueda,
                 onValueChange = {
@@ -113,7 +148,13 @@ fun BuscarCultivoScreen(
                 label = { Text("Filtrar catálogo...") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.primary) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -121,27 +162,44 @@ fun BuscarCultivoScreen(
                 )
             )
 
+            // Indicador de carga mientras se buscan plantas.
             if (buscando) {
                 LinearProgressIndicator(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
                     color = MaterialTheme.colorScheme.primary
                 )
             }
 
+            // Mensaje de error si la búsqueda falla.
             error?.let {
-                Text(text = it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.labelSmall
+                )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape) 4.dp else 8.dp))
 
+            // Lista con scroll de plantas encontradas.
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 16.dp, top = 8.dp)
+                verticalArrangement = Arrangement.spacedBy(if (isLandscape) 8.dp else 12.dp),
+                contentPadding = PaddingValues(
+                    top = if (isLandscape) 4.dp else 8.dp,
+                    bottom = 16.dp
+                )
             ) {
                 if (resultados.isEmpty() && !buscando) {
                     item {
-                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(if (isLandscape) 16.dp else 32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Text("No se han encontrado plantas", color = Color.Gray)
                         }
                     }
@@ -150,10 +208,10 @@ fun BuscarCultivoScreen(
                 items(resultados) { planta ->
                     ItemPlantaCatalogo(
                         planta = planta,
+                        compacta = isLandscape,
                         onClick = {
-                            // 🚩 CAMBIO: En lugar de guardar, preparamos el diálogo
                             plantaSeleccionada = planta
-                            apodoTexto = "" // Limpiar el campo para la nueva planta
+                            apodoTexto = ""
                             mostrarDialogo = true
                         }
                     )
@@ -163,36 +221,51 @@ fun BuscarCultivoScreen(
     }
 }
 
-// Función que muestra un item de planta del catálogo
+// Tarjeta de una planta del catálogo.
+// Muestra imagen, nombre, luz solar y riego; al pulsarla abre el diálogo para plantarla.
 @Composable
-fun ItemPlantaCatalogo(planta: com.example.tfg.data.model.CatalogoDePlantas, onClick: () -> Unit) {
+fun ItemPlantaCatalogo(
+    planta: CatalogoDePlantas,
+    compacta: Boolean = false,
+    onClick: () -> Unit
+) {
+    val imageSize = if (compacta) 52.dp else 65.dp
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(if (compacta) 12.dp else 16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
         )
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(if (compacta) 8.dp else 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
                 model = planta.icono,
                 contentDescription = planta.nombre,
                 modifier = Modifier
-                    .size(65.dp)
+                    .size(imageSize)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primaryContainer),
                 contentScale = ContentScale.Crop
             )
 
-            Column(modifier = Modifier.padding(start = 16.dp).weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .padding(start = 16.dp)
+                    .weight(1f)
+            ) {
                 Text(
                     text = planta.nombre.replaceFirstChar { it.uppercase() },
-                    style = MaterialTheme.typography.titleMedium,
+                    style = if (compacta) {
+                        MaterialTheme.typography.titleSmall
+                    } else {
+                        MaterialTheme.typography.titleMedium
+                    },
                     fontWeight = FontWeight.Bold
                 )
 
@@ -202,7 +275,9 @@ fun ItemPlantaCatalogo(planta: com.example.tfg.data.model.CatalogoDePlantas, onC
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
                     Text(" • ", color = Color.Gray)
+
                     Text(
                         text = "Riego: ${planta.riego?.textoPantalla ?: "No Data"}",
                         style = MaterialTheme.typography.labelSmall,

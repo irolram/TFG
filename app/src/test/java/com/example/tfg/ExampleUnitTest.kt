@@ -1,17 +1,26 @@
 package com.example.tfg
 
+import com.example.tfg.data.model.HuertoUiState
+import com.example.tfg.data.model.LuzSolar
+import com.example.tfg.data.model.Riego
+import org.junit.Assert.*
 import org.junit.Test
 
-import org.junit.Assert.*
+class DomainModelTest {
 
-/**
- * Example local unit test, which will execute on the development machine (host).
- *
- * See [testing documentation](http://d.android.com/tools/testing).
- */
-class ExampleUnitTest {
     @Test
-    fun addition_isCorrect() {
-        assertEquals(4, 2 + 2)
+    fun huertoUiState_empiezaSinDatosNiErrores() {
+        val state = HuertoUiState()
+
+        assertTrue(state.lista.isEmpty())
+        assertFalse(state.cargando)
+        assertNull(state.error)
+        assertFalse(state.operacionExitosa)
+    }
+
+    @Test
+    fun enums_muestranTextosAmigablesEnPantalla() {
+        assertEquals("Frecuente", Riego.FRECUENTE.textoPantalla)
+        assertEquals("Pleno sol", LuzSolar.PLENO_SOL.textoPantalla)
     }
 }

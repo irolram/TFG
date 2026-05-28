@@ -1,18 +1,21 @@
 package com.example.tfg.ui.screen.mod
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -20,7 +23,8 @@ import com.example.tfg.data.model.Ticket
 import com.example.tfg.data.model.TicketAction
 import com.example.tfg.data.model.TipoTicket
 
-// Función que gestiona la pantalla de gestión de tickets
+// Pantalla de gestión de tickets del moderador.
+// Muestra los tickets pendientes, permite refrescar la lista y marcar incidencias como resueltas.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GestionTicketsScreen(
@@ -29,10 +33,17 @@ fun GestionTicketsScreen(
     onRefresh: () -> Unit,
     onResolverTicket: (String) -> Unit
 ) {
+    // Guarda la acción pendiente para mostrar el diálogo de confirmación antes de resolver un ticket.
     var actionPendiente by remember { mutableStateOf<TicketAction>(TicketAction.None) }
 
+    // Detecta orientación horizontal para reducir espacios y que quepa más contenido.
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    // Si hay un ticket pendiente de resolver, se pide confirmación al usuario.
     if (actionPendiente is TicketAction.ConfirmResolve) {
         val ticket = (actionPendiente as TicketAction.ConfirmResolve).ticket
+
         AlertDialog(
             onDismissRequest = { actionPendiente = TicketAction.None },
             title = { Text("Resolver Ticket") },
@@ -43,54 +54,104 @@ fun GestionTicketsScreen(
                         ticket.id?.let { onResolverTicket(it) }
                         actionPendiente = TicketAction.None
                     }
-                ) { Text("Confirmar") }
+                ) {
+                    Text("Confirmar")
+                }
             },
             dismissButton = {
-                TextButton(onClick = { actionPendiente = TicketAction.None }) { Text("Cancelar") }
+                TextButton(onClick = { actionPendiente = TicketAction.None }) {
+                    Text("Cancelar")
+                }
             }
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-
-        Surface(color = MaterialTheme.colorScheme.primary, shadowElevation = 4.dp) {
-            Column(modifier = Modifier.fillMaxWidth().padding(20.dp).statusBarsPadding()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // Cabecera de la pantalla. En horizontal se hace más baja para dejar más espacio a la lista.
+        Surface(
+            color = MaterialTheme.colorScheme.primary,
+            shadowElevation = 4.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 20.dp,
+                        vertical = if (isLandscape) 10.dp else 20.dp
+                    )
+                    .statusBarsPadding()
+            ) {
                 Text(
                     text = "CENTRO DE SOPORTE",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = if (isLandscape) {
+                        MaterialTheme.typography.titleMedium
+                    } else {
+                        MaterialTheme.typography.titleLarge
+                    },
                     color = Color.White,
                     fontWeight = FontWeight.ExtraBold
                 )
-                Text(
-                    text = "Bandeja de entrada de incidencias",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.7f)
-                )
+
+                if (!isLandscape) {
+                    Text(
+                        text = "Bandeja de entrada de incidencias",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White.copy(alpha = 0.7f)
+                    )
+                }
             }
         }
 
+        // Contenedor con pull-to-refresh para recargar tickets arrastrando hacia abajo.
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = onRefresh,
             modifier = Modifier.fillMaxSize()
         ) {
             if (listaTickets.isEmpty() && !isRefreshing) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                // Estado vacío cuando no quedan incidencias pendientes.
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.DoneAll, null, modifier = Modifier.size(48.dp), tint = Color.Gray)
-                        Text("No hay tickets pendientes", color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
+                        Icon(
+                            imageVector = Icons.Default.DoneAll,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = Color.Gray
+                        )
+
+                        Text(
+                            text = "No hay tickets pendientes",
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                 }
             } else {
+                // Lista con scroll de tickets pendientes.
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    contentPadding = PaddingValues(
+                        horizontal = 16.dp,
+                        vertical = if (isLandscape) 8.dp else 16.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(
+                        if (isLandscape) 8.dp else 16.dp
+                    )
                 ) {
                     items(listaTickets, key = { it.id ?: "" }) { ticket ->
                         TicketItem(
                             ticket = ticket,
-                            onResolverClick = { actionPendiente = TicketAction.ConfirmResolve(ticket) }
+                            compacta = isLandscape,
+                            onResolverClick = {
+                                actionPendiente = TicketAction.ConfirmResolve(ticket)
+                            }
                         )
                     }
                 }
@@ -99,24 +160,36 @@ fun GestionTicketsScreen(
     }
 }
 
-// Función que muestra un ticket
+// Tarjeta visual de un ticket.
+// Muestra tipo, identificador, fecha, usuario, descripción y botón para marcarlo como resuelto.
 @Composable
-fun TicketItem(ticket: Ticket, onResolverClick: () -> Unit) {
-    // Colores semánticos según el tipo
-    val colorTipo = when(ticket.tipo) {
+fun TicketItem(
+    ticket: Ticket,
+    compacta: Boolean = false,
+    onResolverClick: () -> Unit
+) {
+    // Color del ticket según su tipo para identificar rápido errores, sugerencias u otros casos.
+    val colorTipo = when (ticket.tipo) {
         TipoTicket.ERROR -> MaterialTheme.colorScheme.error
-        TipoTicket.SUGERENCIA -> Color(0xFF388E3C) // Verde éxito
-        TipoTicket.OTRO -> Color(0xFFF9A825) // Ámbar
+        TipoTicket.SUGERENCIA -> Color(0xFF388E3C)
+        TipoTicket.OTRO -> Color(0xFFF9A825)
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Fila superior: Tipo, ID y Fecha
+        Column(
+            modifier = Modifier.padding(
+                horizontal = 16.dp,
+                vertical = if (compacta) 10.dp else 16.dp
+            )
+        ) {
+            // Fila superior con tipo, ID corto y fecha del ticket.
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     color = colorTipo.copy(alpha = 0.1f),
@@ -148,9 +221,9 @@ fun TicketItem(ticket: Ticket, onResolverClick: () -> Unit) {
                 )
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(if (compacta) 8.dp else 12.dp))
 
-            // Cuerpo del Ticket
+            // Información principal del ticket.
             Text(
                 text = ticket.asunto ?: "Sin asunto",
                 style = MaterialTheme.typography.titleMedium,
@@ -164,7 +237,7 @@ fun TicketItem(ticket: Ticket, onResolverClick: () -> Unit) {
                 fontWeight = FontWeight.SemiBold
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(if (compacta) 6.dp else 8.dp))
 
             Text(
                 text = ticket.descripcion ?: "No se proporcionó descripción.",
@@ -173,19 +246,29 @@ fun TicketItem(ticket: Ticket, onResolverClick: () -> Unit) {
                 lineHeight = 20.sp
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(if (compacta) 10.dp else 16.dp))
 
-            // Botón de Acción
+            // Acción final del moderador: marca el ticket como resuelto tras confirmación.
             Button(
                 onClick = onResolverClick,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = colorTipo),
                 shape = RoundedCornerShape(12.dp),
-                contentPadding = PaddingValues(vertical = 12.dp)
+                contentPadding = PaddingValues(vertical = if (compacta) 8.dp else 12.dp)
             ) {
-                Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+
                 Spacer(Modifier.width(8.dp))
-                Text("MARCAR COMO RESUELTO", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+
+                Text(
+                    text = "MARCAR COMO RESUELTO",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp
+                )
             }
         }
     }

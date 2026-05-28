@@ -1,18 +1,26 @@
 package com.example.tfg.ui.screens
 
+import android.content.res.Configuration
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,22 +35,26 @@ import com.example.tfg.ui.components.HuertoTextField
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-// Pantalla de registro
+// Pantalla de registro.
+// Crea el usuario en Firebase, lo registra en el servidor, guarda el token y completa su perfil.
 @Composable
 fun RegisterScreen(navController: NavController) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val tokenManager = remember { TokenManager(context) }
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    // Estados para los campos
-    var nombre by remember { mutableStateOf("") }
-    var apellidos by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirmarPassword by remember { mutableStateOf("") }
+    val tokenManager = remember { TokenManager(context) }
     val auth = remember { com.google.firebase.auth.FirebaseAuth.getInstance() }
-    var errorMsg by remember { mutableStateOf<String?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
+
+    // Campos del formulario. rememberSaveable evita perder los datos al girar el móvil.
+    var nombre by rememberSaveable { mutableStateOf("") }
+    var apellidos by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var confirmarPassword by rememberSaveable { mutableStateOf("") }
+    var errorMsg by rememberSaveable { mutableStateOf<String?>(null) }
+    var isLoading by rememberSaveable { mutableStateOf(false) }
 
     Scaffold { paddingValues ->
         Box(
@@ -61,76 +73,100 @@ fun RegisterScreen(navController: NavController) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = if (isLandscape) 48.dp else 24.dp)
+                    .padding(vertical = if (isLandscape) 20.dp else 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = if (isLandscape) Arrangement.Top else Arrangement.Center
             ) {
-                // Título temático
+                // Título principal del registro.
                 Text(
-                    "¡Crea tu Huerto!",
+                    text = "¡Crea tu Huerto!",
                     color = MaterialTheme.colorScheme.primary,
-                    fontSize = 32.sp,
+                    fontSize = if (isLandscape) 28.sp else 32.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-                Text(
-                    "Regístrate para empezar a cultivar",
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                    fontSize = 16.sp,
-                    modifier = Modifier.padding(bottom = 32.dp)
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
 
+                Text(
+                    text = "Regístrate para empezar a cultivar",
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    fontSize = if (isLandscape) 14.sp else 16.sp,
+                    modifier = Modifier.padding(bottom = if (isLandscape) 20.dp else 32.dp)
+                )
+
+                // Formulario de datos personales y credenciales.
                 HuertoTextField(
                     value = nombre,
-                    onValueChange = { nombre = it },
+                    onValueChange = {
+                        nombre = it
+                        errorMsg = null
+                    },
                     placeholder = "Nombre",
                     icon = Icons.Default.Person
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+
+                Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 16.dp))
 
                 HuertoTextField(
                     value = apellidos,
-                    onValueChange = { apellidos = it },
+                    onValueChange = {
+                        apellidos = it
+                        errorMsg = null
+                    },
                     placeholder = "Apellidos",
                     icon = Icons.Default.Badge
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+
+                Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 16.dp))
 
                 HuertoTextField(
                     value = email,
-                    onValueChange = { email = it },
+                    onValueChange = {
+                        email = it
+                        errorMsg = null
+                    },
                     placeholder = "Email de cultivador",
                     icon = Icons.Default.Email
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+
+                Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 16.dp))
 
                 HuertoTextField(
                     value = password,
-                    onValueChange = { password = it },
+                    onValueChange = {
+                        password = it
+                        errorMsg = null
+                    },
                     placeholder = "Contraseña",
                     icon = Icons.Default.Lock,
                     isPassword = true
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+
+                Spacer(modifier = Modifier.height(if (isLandscape) 10.dp else 16.dp))
 
                 HuertoTextField(
                     value = confirmarPassword,
-                    onValueChange = { confirmarPassword = it },
+                    onValueChange = {
+                        confirmarPassword = it
+                        errorMsg = null
+                    },
                     placeholder = "Confirmar contraseña",
                     icon = Icons.Default.VerifiedUser,
                     isPassword = true
                 )
 
+                // Mensaje de error de validación, Firebase o servidor.
                 errorMsg?.let {
                     Text(
-                        it,
-                        color = MaterialTheme.colorScheme.error, // 🚩 Usa el color de error del tema
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(top = 12.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(if (isLandscape) 24.dp else 48.dp))
 
                 if (isLoading) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
@@ -138,13 +174,13 @@ fun RegisterScreen(navController: NavController) {
                     Button(
                         onClick = {
                             scope.launch {
-                                // Validación básica de contraseñas
-                                if (password != confirmarPassword) {
-                                    errorMsg = "Las contraseñas no coinciden"
-                                    return@launch
-                                }
                                 if (nombre.isBlank() || email.isBlank()) {
                                     errorMsg = "Rellena los campos obligatorios"
+                                    return@launch
+                                }
+
+                                if (password != confirmarPassword) {
+                                    errorMsg = "Las contraseñas no coinciden"
                                     return@launch
                                 }
 
@@ -152,25 +188,34 @@ fun RegisterScreen(navController: NavController) {
                                 errorMsg = null
 
                                 try {
-                                    // 1. REGISTRO EN FIREBASE
-                                    val authResult = auth.createUserWithEmailAndPassword(email, password).await()
+                                    // 1. Crea el usuario en Firebase.
+                                    val authResult = auth
+                                        .createUserWithEmailAndPassword(email, password)
+                                        .await()
+
                                     val firebaseUser = authResult.user
 
                                     if (firebaseUser != null) {
                                         val uid = firebaseUser.uid
                                         val correo = firebaseUser.email ?: email
 
-                                        // 2. LOGIN EN RAILWAY (Provoca el auto-registro y nos da el JWT)
+                                        // 2. Login contra el servidor para auto-registrar y recibir JWT.
                                         val loginRequest = LoginRequest(userId = uid, email = correo)
-                                        val loginResponse = RetrofitClient.getApiService(context).loginConServidor(loginRequest)
+                                        val loginResponse = RetrofitClient
+                                            .getApiService(context)
+                                            .loginConServidor(loginRequest)
 
                                         if (loginResponse.isSuccessful) {
                                             val authData = loginResponse.body()
-                                            if (authData != null) {
-                                                // 3. GUARDAMOS EL TOKEN
-                                                tokenManager.saveToken(authData.accessToken, authData.userId)
 
-                                                // 4. ACTUALIZAMOS EL PERFIL
+                                            if (authData != null) {
+                                                // 3. Guarda token y userId.
+                                                tokenManager.saveToken(
+                                                    authData.accessToken,
+                                                    authData.userId
+                                                )
+
+                                                // 4. Completa el perfil del usuario en el backend.
                                                 val usuarioActualizado = Usuario(
                                                     id = uid,
                                                     nombre = nombre,
@@ -178,15 +223,17 @@ fun RegisterScreen(navController: NavController) {
                                                     email = correo,
                                                     rol = Rol.USER
                                                 )
-                                                RetrofitClient.getApiService(context).actualizarUsuario(uid, usuarioActualizado)
 
+                                                RetrofitClient
+                                                    .getApiService(context)
+                                                    .actualizarUsuario(uid, usuarioActualizado)
+
+                                                // 5. Entra al menú principal y limpia el historial.
                                                 navController.navigate("main_menuUser") {
-                                                    // Limpiamos el historial para que no pueda volver atrás al registro
                                                     popUpTo("login") { inclusive = true }
                                                 }
                                             }
                                         } else {
-                                            // Rollback: Si falla nuestra API, borramos de Firebase para no tener "usuarios fantasma"
                                             firebaseUser.delete().await()
                                             errorMsg = "Error al conectar con el servidor EcoDrop."
                                         }
@@ -201,34 +248,40 @@ fun RegisterScreen(navController: NavController) {
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(64.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary), // 🚩 Conectado al tema
+                            .height(if (isLandscape) 54.dp else 64.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
                         shape = RoundedCornerShape(16.dp),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
                     ) {
                         Text(
-                            "Empezar a Cultivar",
-                            color = MaterialTheme.colorScheme.onPrimary, // 🚩 Conectado al tema
-                            fontSize = 20.sp,
+                            text = "Empezar a Cultivar",
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontSize = if (isLandscape) 18.sp else 20.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(if (isLandscape) 24.dp else 32.dp))
 
+                // Enlace para volver al login si ya tiene cuenta.
                 Row {
                     Text(
-                        "¿Ya tienes un huerto? ",
+                        text = "¿Ya tienes un huerto? ",
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                         fontSize = 14.sp
                     )
+
                     Text(
-                        "Inicia sesión",
-                        color = MaterialTheme.colorScheme.primary, // 🚩 Conectado al tema
+                        text = "Inicia sesión",
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
-                        modifier = Modifier.clickable { navController.popBackStack() }
+                        modifier = Modifier.clickable {
+                            navController.popBackStack()
+                        }
                     )
                 }
             }

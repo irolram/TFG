@@ -1,5 +1,9 @@
 package com.example.tfg.ui.components
 
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.foundation.background
@@ -10,10 +14,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -21,6 +30,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.tfg.data.model.CatalogoDePlantas
 import com.example.tfg.data.model.Huerto
+import com.example.tfg.data.model.Usuario
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 // Función reutilizable para los campos de texto
 @Composable
@@ -190,4 +202,114 @@ fun formatTimestamp(timestamp: Long?): String {
     } catch (e: Exception) {
         "Fecha inválida"
     }
+}
+
+
+// COMPONENTE PARA LEER Y ESCRIBIR FICHEROS (Cumplimiento de ADA y SGE)@Composable
+@Composable
+fun PanelGestionFicheros(
+    textoAExportar: String // ELIMINAMOS el valor por defecto para obligar a usar el dinámico
+) {
+    val context = LocalContext.current
+    var contenidoLeido by remember { mutableStateOf<String?>(null) }
+
+    // 1. Usamos "text/csv" para que los móviles lo reconozcan como hoja de cálculo
+    val exportarLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                context.contentResolver.openOutputStream(it)?.use { outputStream ->
+                    outputStream.write(textoAExportar.toByteArray())
+                }
+                Toast.makeText(context, "Resumen exportado con éxito 📄", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error al guardar el archivo", Toast.LENGTH_SHORT).show()
+                e.printStackTrace()
+            }
+        }
+    }
+
+    val importarLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                val inputStream = context.contentResolver.openInputStream(it)
+                val reader = BufferedReader(InputStreamReader(inputStream))
+                contenidoLeido = reader.readText()
+                Toast.makeText(context, "Archivo leído correctamente", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error al leer el archivo", Toast.LENGTH_SHORT).show()
+                e.printStackTrace()
+            }
+        }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Exportación de Datos Locales",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    // 2. Nombre del archivo como CSV
+                    onClick = { exportarLauncher.launch("Usuarios_EcoDrop.csv") },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.Download, contentDescription = "Exportar", modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Exportar")
+                }
+
+                FilledTonalButton(
+                    onClick = { importarLauncher.launch(arrayOf("text/plain", "text/csv")) },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.UploadFile, contentDescription = "Leer", modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Leer")
+                }
+            }
+            if (contenidoLeido != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Último archivo leído:", style = MaterialTheme.typography.labelMedium)
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(text = contenidoLeido!!, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+    }
+}
+
+// Función encargada de transformar los datos de los usuarios a formato tabla Excel (CSV)
+fun generarCsvUsuarios(listaUsuarios: List<Usuario>): String {
+    val builder = StringBuilder()
+
+    // Cabeceras de las columnas (ajustado para que Excel lo lea bien)
+    builder.append("ID,Nombre,Apellidos,Email,Rol\n")
+
+    // Recorremos la lista de la base de datos fila por fila
+    listaUsuarios.forEach { user ->
+
+        val nombreLimpio = user.nombre.replace(",", "")
+        val apellidosLimpios = user.apellidos?.replace(",", "") ?: ""
+
+        // Añadimos los datos reales separados por coma y un salto de línea al final
+        builder.append("${user.id},$nombreLimpio,$apellidosLimpios,${user.email},${user.rol}\n")
+    }
+
+    return builder.toString()
 }

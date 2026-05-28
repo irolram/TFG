@@ -1,5 +1,6 @@
 package com.example.tfg.ui.screen.admin
 
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,7 +22,6 @@ import com.example.tfg.data.model.RolData
 import com.example.tfg.viewModel.UsuarioViewModel
 import com.google.firebase.auth.FirebaseAuth
 
-// Función que muestra la pantalla principal del administrador
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaPrincipalAdmin(
@@ -31,9 +31,7 @@ fun PantallaPrincipalAdmin(
     onDarkModeChange: (Boolean) -> Unit,
     onLogout: () -> Unit
 ) {
-    var selectedItem by remember { mutableIntStateOf(0) }
-
-    // Observamos los estados del ViewModel
+    var selectedItem by rememberSaveable { mutableStateOf(0) }
     val usuarioLogueado by viewModel.usuarioLogueado.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val listaUsuarios by viewModel.listaUsuarios.collectAsState()
@@ -49,7 +47,7 @@ fun PantallaPrincipalAdmin(
     LaunchedEffect(selectedItem) {
         when (selectedItem) {
             0 -> viewModel.cargarEstadisticas()
-            1 -> if (listaUsuarios.isEmpty()) viewModel.listarUsuarios()
+            1, 3 -> if (listaUsuarios.isEmpty()) viewModel.listarUsuarios()
         }
     }
 
@@ -58,7 +56,7 @@ fun PantallaPrincipalAdmin(
             TopAppBar(
                 title = {
                     Text(
-                        text = when(selectedItem) {
+                        text = when (selectedItem) {
                             0 -> "Panel de Control"
                             1 -> "Usuarios"
                             2 -> "Mapa Admin"
@@ -79,7 +77,12 @@ fun PantallaPrincipalAdmin(
                 tonalElevation = 8.dp
             ) {
                 val items = listOf("Métricas", "Usuarios", "Mapa", "Perfil")
-                val icons = listOf(Icons.Default.Dashboard, Icons.Default.People, Icons.Default.Radar, Icons.Default.Person)
+                val icons = listOf(
+                    Icons.Default.Dashboard,
+                    Icons.Default.People,
+                    Icons.Default.Radar,
+                    Icons.Default.Person
+                )
 
                 items.forEachIndexed { index, item ->
                     NavigationBarItem(
@@ -104,6 +107,7 @@ fun PantallaPrincipalAdmin(
         ) {
             when (selectedItem) {
                 0 -> DashboardAdminContent(viewModel)
+
                 1 -> GestionUsuariosAdminScreen(
                     listaUsuarios = listaUsuarios,
                     miIdActual = miIdActual,
@@ -112,25 +116,30 @@ fun PantallaPrincipalAdmin(
                     onCambiarRol = { id, nuevoRol -> viewModel.actualizarRol(id, nuevoRol) },
                     onEliminarUsuario = { id -> viewModel.eliminarUsuario(id) }
                 )
+
                 2 -> MapaAdminScreen(viewModel)
+
                 3 -> PerfilAdminScreen(
                     usuario = usuarioLogueado,
                     isDarkMode = isDarkMode,
                     onDarkModeChange = onDarkModeChange,
-                    onLogout = onLogout
+                    onLogout = onLogout,
+                    listaUsuarios = listaUsuarios
                 )
             }
         }
     }
 }
 
-// Función que muestra el contenido del panel de control del administrador
 @Composable
 fun DashboardAdminContent(viewModel: UsuarioViewModel) {
     val stats by viewModel.stats.collectAsState()
 
     if (stats == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
             CircularProgressIndicator()
         }
     } else {
@@ -159,11 +168,12 @@ fun DashboardAdminContent(viewModel: UsuarioViewModel) {
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f)
                     )
+
                     EstadisticaCard(
                         titulo = "Huertos",
                         valor = "${stats!!.totalHuertos}",
                         icono = Icons.Default.Eco,
-                        color = Color(0xFFEF6C00), // Naranja para huertos
+                        color = Color(0xFFEF6C00),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -173,11 +183,13 @@ fun DashboardAdminContent(viewModel: UsuarioViewModel) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(
-                            "Distribución por Roles",
+                            text = "Distribución por Roles",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -195,6 +207,7 @@ fun DashboardAdminContent(viewModel: UsuarioViewModel) {
                         }
 
                         Spacer(Modifier.height(20.dp))
+
                         GraficoDistribucionRoles(datos = datosGrafico)
                     }
                 }
@@ -203,7 +216,6 @@ fun DashboardAdminContent(viewModel: UsuarioViewModel) {
     }
 }
 
-//Función que muestra la tarjeta de estadísticas
 @Composable
 fun EstadisticaCard(
     titulo: String,
@@ -216,7 +228,9 @@ fun EstadisticaCard(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Surface(
@@ -231,14 +245,25 @@ fun EstadisticaCard(
                     modifier = Modifier.padding(8.dp)
                 )
             }
+
             Spacer(modifier = Modifier.height(12.dp))
-            Text(text = valor, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = color)
-            Text(text = titulo, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            Text(
+                text = valor,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+                color = color
+            )
+
+            Text(
+                text = titulo,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
 
-// Función que muestra el grafico de distribución de roles
 @Composable
 fun GraficoDistribucionRoles(datos: List<RolData>) {
     val maxValor = datos.maxOfOrNull { it.cantidad }?.toFloat() ?: 1f
@@ -251,13 +276,27 @@ fun GraficoDistribucionRoles(datos: List<RolData>) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(item.nombre, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                    Text("${item.cantidad}", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = item.nombre,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Text(
+                        text = "${item.cantidad}",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
+
                 Spacer(Modifier.height(6.dp))
+
                 LinearProgressIndicator(
                     progress = { item.cantidad / maxValor },
-                    modifier = Modifier.fillMaxWidth().height(10.dp).clip(CircleShape),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(10.dp)
+                        .clip(CircleShape),
                     color = item.color,
                     trackColor = MaterialTheme.colorScheme.outlineVariant
                 )
