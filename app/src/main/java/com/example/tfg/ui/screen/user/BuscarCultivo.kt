@@ -210,7 +210,6 @@ fun BuscarCultivoScreen(
                         planta = planta,
                         compacta = isLandscape,
                         onClick = {
-                            // 🚩 CAMBIO: En lugar de guardar, preparamos el diálogo
                             plantaSeleccionada = planta
                             apodoTexto = ""
                             mostrarDialogo = true

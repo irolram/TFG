@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.tfg.data.model.Usuario
+import com.example.tfg.ui.components.PanelGestionFicheros
 import com.example.tfg.ui.components.generarCsvUsuarios
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -231,96 +232,6 @@ fun PerfilAdminScreen(
                 Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Cerrar Sesión", fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
-// Funcion que gestiona la exportación de datos locales
-@Composable
-fun PanelGestionFicheros(
-    textoAExportar: String
-) {
-    val context = LocalContext.current
-
-    val exportarLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("text/plain")
-    ) { uri: Uri? ->
-        if (uri == null) return@rememberLauncherForActivityResult
-
-        try {
-            context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                outputStream.write(textoAExportar.toByteArray(Charsets.UTF_8))
-                outputStream.flush()
-            }
-
-            Toast.makeText(context, "Archivo exportado correctamente", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            Toast.makeText(context, "Error al exportar: ${e.message}", Toast.LENGTH_LONG).show()
-            e.printStackTrace()
-        }
-    }
-
-    val importarLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        if (uri == null) return@rememberLauncherForActivityResult
-
-        try {
-            context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                BufferedReader(InputStreamReader(inputStream, Charsets.UTF_8)).use { reader ->
-                    reader.readText()
-                }
-            }
-
-            Toast.makeText(context, "Archivo leído correctamente", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            Toast.makeText(context, "Error al leer: ${e.message}", Toast.LENGTH_LONG).show()
-            e.printStackTrace()
-        }
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Exportación de Datos Locales",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = { exportarLauncher.launch("Log_Sistema_EcoDrop.txt") },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Download,
-                        contentDescription = "Exportar",
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text("Exportar")
-                }
-
-                FilledTonalButton(
-                    onClick = { importarLauncher.launch(arrayOf("*/*")) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.UploadFile,
-                        contentDescription = "Leer",
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text("Leer")
-                }
             }
         }
     }

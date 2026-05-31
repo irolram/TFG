@@ -204,52 +204,56 @@ fun formatTimestamp(timestamp: Long?): String {
     }
 }
 
-
-// COMPONENTE PARA LEER Y ESCRIBIR FICHEROS (Cumplimiento de ADA y SGE)@Composable
+// Funcion que gestiona la exportación de datos locales
 @Composable
 fun PanelGestionFicheros(
-    textoAExportar: String // ELIMINAMOS el valor por defecto para obligar a usar el dinámico
+    textoAExportar: String
 ) {
     val context = LocalContext.current
-    var contenidoLeido by remember { mutableStateOf<String?>(null) }
 
-    // 1. Usamos "text/csv" para que los móviles lo reconozcan como hoja de cálculo
     val exportarLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("text/csv")
+        contract = ActivityResultContracts.CreateDocument("text/plain")
     ) { uri: Uri? ->
-        uri?.let {
-            try {
-                context.contentResolver.openOutputStream(it)?.use { outputStream ->
-                    outputStream.write(textoAExportar.toByteArray())
-                }
-                Toast.makeText(context, "Resumen exportado con éxito 📄", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(context, "Error al guardar el archivo", Toast.LENGTH_SHORT).show()
-                e.printStackTrace()
+        if (uri == null) return@rememberLauncherForActivityResult
+
+        try {
+            context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                outputStream.write(textoAExportar.toByteArray(Charsets.UTF_8))
+                outputStream.flush()
             }
+
+            Toast.makeText(context, "Archivo exportado correctamente", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(context, "Error al exportar: ${e.message}", Toast.LENGTH_LONG).show()
+            e.printStackTrace()
         }
     }
 
     val importarLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
-        uri?.let {
-            try {
-                val inputStream = context.contentResolver.openInputStream(it)
-                val reader = BufferedReader(InputStreamReader(inputStream))
-                contenidoLeido = reader.readText()
-                Toast.makeText(context, "Archivo leído correctamente", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(context, "Error al leer el archivo", Toast.LENGTH_SHORT).show()
-                e.printStackTrace()
+        if (uri == null) return@rememberLauncherForActivityResult
+
+        try {
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                BufferedReader(InputStreamReader(inputStream, Charsets.UTF_8)).use { reader ->
+                    reader.readText()
+                }
             }
+
+            Toast.makeText(context, "Archivo leído correctamente", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(context, "Error al leer: ${e.message}", Toast.LENGTH_LONG).show()
+            e.printStackTrace()
         }
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -257,37 +261,34 @@ fun PanelGestionFicheros(
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary
             )
+
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
-                    // 2. Nombre del archivo como CSV
-                    onClick = { exportarLauncher.launch("Usuarios_EcoDrop.csv") },
+                    onClick = { exportarLauncher.launch("Log_Sistema_EcoDrop.txt") },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(Icons.Default.Download, contentDescription = "Exportar", modifier = Modifier.size(20.dp))
+                    Icon(
+                        imageVector = Icons.Default.Download,
+                        contentDescription = "Exportar",
+                        modifier = Modifier.size(20.dp)
+                    )
                     Spacer(Modifier.width(8.dp))
                     Text("Exportar")
                 }
 
                 FilledTonalButton(
-                    onClick = { importarLauncher.launch(arrayOf("text/plain", "text/csv")) },
+                    onClick = { importarLauncher.launch(arrayOf("*/*")) },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(Icons.Default.UploadFile, contentDescription = "Leer", modifier = Modifier.size(20.dp))
+                    Icon(
+                        imageVector = Icons.Default.UploadFile,
+                        contentDescription = "Leer",
+                        modifier = Modifier.size(20.dp)
+                    )
                     Spacer(Modifier.width(8.dp))
                     Text("Leer")
-                }
-            }
-            if (contenidoLeido != null) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Último archivo leído:", style = MaterialTheme.typography.labelMedium)
-                Surface(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(text = contenidoLeido!!, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
